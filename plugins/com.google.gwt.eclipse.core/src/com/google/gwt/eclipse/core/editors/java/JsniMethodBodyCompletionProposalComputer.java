@@ -53,10 +53,11 @@ import java.util.Map;
 public class JsniMethodBodyCompletionProposalComputer implements
     IJavaCompletionProposalComputer {
   public static final String SIMPLE_EXTENSION_ID = "jsniCompletionProposalComputer";
-
   public static final String THIS = "this";
   public static final String WND = "$wnd";
 
+  private static final String JSNI_METHOD_OPEN_BRACE = "/*-{";
+  
   private static final List<IContextInformation> NO_CONTEXTS = Collections.emptyList();
 
   private static final List<ICompletionProposal> NO_PROPOSALS = Collections.emptyList();
@@ -70,7 +71,7 @@ public class JsniMethodBodyCompletionProposalComputer implements
     assert (propertyAccessorMethodName.startsWith(prefix));
     String propertyName = propertyAccessorMethodName.substring(prefix.length());
     if (propertyName.length() > 0) {
-      // Lower case the first letter of the property name
+      // Lower case the first letter of the property name.
       propertyName = propertyName.substring(0, 1).toLowerCase()
           + propertyName.substring(1);
     }
@@ -176,7 +177,8 @@ public class JsniMethodBodyCompletionProposalComputer implements
   }
 
   private static JavaCompletionProposal createProposal(int flags,
-      String replacementString, int replacementOffset, String displayString) {
+      String replacementString, int replacementOffset, int numCharsFilled, 
+      int numCharsToOverwrite, String displayString) {
     Image image;
     GWTPlugin plugin = GWTPlugin.getDefault();
     if (Flags.isPublic(flags)) {
@@ -188,9 +190,9 @@ public class JsniMethodBodyCompletionProposalComputer implements
     } else {
       image = plugin.getImage(GWTImages.JSNI_DEFAULT_METHOD_SMALL);
     }
-
+    replacementString = replacementString.substring(numCharsFilled);
     return new JavaCompletionProposal(replacementString, replacementOffset,
-        0, image, "/*-{ " + displayString + " }-*/;", 0);
+        numCharsToOverwrite, image, "/*-{ " + displayString + " }-*/;", 0);
   }
 
   /**
@@ -209,24 +211,10 @@ public class JsniMethodBodyCompletionProposalComputer implements
         || Signature.SIG_CHAR.equals(typeSignature);
   }
 
-  private static String trimTrailingWhitespace(String methodSource) {
-    int endIndex = methodSource.length() - 1;
-    while (endIndex >= 0) {
-      char ch = methodSource.charAt(endIndex);
-      if (Character.isWhitespace(ch)) {
-        --endIndex;
-      } else {
-        break;
-      }
-    }
-
-    return methodSource.substring(0, endIndex + 1);
-  }
-
   public List<ICompletionProposal> computeCompletionProposals(
       ContentAssistInvocationContext context, IProgressMonitor monitor) {
     if (!(context instanceof JavaContentAssistInvocationContext)) {
-      // Not in a java content assist content
+      // Not in a java content assist content.
       return NO_PROPOSALS;
     }
 
@@ -244,14 +232,14 @@ public class JsniMethodBodyCompletionProposalComputer implements
 
       int invocationOffset = jcaic.getInvocationOffset();
       IJavaElement elementAt = compilationUnit.getElementAt(invocationOffset);
-
+      
       if (elementAt == null) {
-        // Can't determine the element at the specified offset
+        // Can't determine the element at the specified offset.
         return NO_PROPOSALS;
       }
 
       if (IJavaElement.METHOD != elementAt.getElementType()) {
-        // Not a method
+        // Not a method.
         return NO_PROPOSALS;
       }
 
@@ -259,50 +247,145 @@ public class JsniMethodBodyCompletionProposalComputer implements
 
       IType thisType = method.getDeclaringType();
       if (thisType.isInterface()) {
-        // Don't propose anything for interfaces
+        // Don't propose anything for interfaces.
         return NO_PROPOSALS;
+      }
+      
+      ISourceRange sourceRange = method.getSourceRange();
+      if (sourceRange == null) {
+        // No source code.
+        // TODO: Is this possible?
+        return NO_PROPOSALS;
+      }
+      
+      String methodSource = method.getSource();
+      int invocationIdx = invocationOffset - sourceRange.getOffset();
+      
+      // Sometimes, if incomplete JSNI method has /* and is followed by any global 
+      // comment of format /*..*/, compilation unit separates the code after
+      // incomplete JSNI method's /* as a separate block from the incomplete method.
+      // So we need to check whether the block before the invocation offset's block
+      // is the incomplete JSNI method that we are interested in.
+      
+
+      IJavaElement prevElement = compilationUnit.getElementAt(sourceRange.getOffset() - 1);
+      if (IJavaElement.METHOD == prevElement.getElementType()){
+        
+        IMethod prevMethod = (IMethod) prevElement;
+        
+        if ((prevMethod.getDeclaringType().isInterface() == false)
+            && (Flags.isNative(prevMethod.getFlags()) == true)){
+          
+          String prevMethodSource = prevMethod.getSource();
+          if (prevMethodSource.trim().endsWith(")") == true){
+            methodSource = prevMethodSource.concat(methodSource);
+            method = prevMethod;
+            invocationIdx += prevMethodSource.length();
+          }
+        }
       }
 
       int flags = method.getFlags();
       if (!Flags.isNative(flags)) {
-        // If the method is not native then no proposals
+        // If the method is not native then no proposals.
         return NO_PROPOSALS;
       }
-
-      ISourceRange sourceRange = method.getSourceRange();
-      if (sourceRange == null) {
-        // No source code
-        // TODO: Is this possible?
-        return NO_PROPOSALS;
+      
+      // Eliminating comments that might precede native method declaration, so that
+      // following code can safely assume first ')' found is that of function declaration.
+      int idxMultiLineComment = methodSource.trim().indexOf("/*");
+      int idxSingleLineComment = methodSource.trim().indexOf("//");
+      while ((idxMultiLineComment == 0) || (idxSingleLineComment == 0)) {
+        if (idxMultiLineComment == 0) {
+          invocationIdx -= methodSource.indexOf("*/") + 2;
+          methodSource = methodSource.substring(methodSource.indexOf("*/") + 2);
+        } else {
+          invocationIdx -= methodSource.indexOf('\n') + 1;
+          methodSource = methodSource.substring(methodSource.indexOf('\n') + 1);
+        } 
+        idxMultiLineComment = methodSource.trim().indexOf("/*");
+        idxSingleLineComment = methodSource.trim().indexOf("//");
       }
 
-      String methodSource = method.getSource();
-      if (methodSource.indexOf("/*-{") != -1
-          && methodSource.indexOf("}-*/") != -1) {
-        // The method already has JSNI blocks
+      // Eliminating any JSNI method that might follow the JSNI method in consideration.
+      int jsniMethodOpenIdx = methodSource.indexOf(JSNI_METHOD_OPEN_BRACE);
+      if (jsniMethodOpenIdx != -1) {
+        int jsniMethodCloseBracketIdx = methodSource.indexOf(")");
+        String tempString = methodSource.substring(jsniMethodCloseBracketIdx, jsniMethodOpenIdx);
+        if (tempString.trim().length() != 1) {
+          methodSource = methodSource.substring(0, jsniMethodOpenIdx - 1);
+        } else {
+          int nextJsniMethodOpenIdx = 
+              methodSource.substring(jsniMethodOpenIdx + 4).indexOf(JSNI_METHOD_OPEN_BRACE);
+          if (nextJsniMethodOpenIdx != -1) {
+            nextJsniMethodOpenIdx += jsniMethodOpenIdx + 4;
+            methodSource = methodSource.substring(0, nextJsniMethodOpenIdx - 1);
+          }
+        }
+      }
+      
+      // Check if the JSNI method is already complete.
+      if (methodSource.indexOf("}-*/;") != -1) {
+        // JSNI method is complete.
         return NO_PROPOSALS;
       }
-
-      if (methodSource.indexOf('{') != -1) {
-        // The method source has an opening brace, no proposals
-        return NO_PROPOSALS;
+      
+      // Check position of invocation offset.
+      int numCharsFilled = 0, numCharsToOverwrite = 0;
+      
+      String tempString = "";
+      if (methodSource.substring(methodSource.indexOf(")") + 1).trim().indexOf("/") != -1){
+        tempString = methodSource.substring(methodSource.indexOf(")"), methodSource.indexOf("/"));
       }
+      
+      if ((methodSource.substring(methodSource.indexOf(")") + 1).trim().indexOf("/") == 0)
+          && (tempString.indexOf('\n') == -1)){
 
-      methodSource = trimTrailingWhitespace(methodSource);
-      if (methodSource.endsWith(";")) {
-        // Native method ends with a semicolon
-        return NO_PROPOSALS;
-      } else if (methodSource.endsWith("}")) {
-        // The last method in the file might pick up the closing } of the class.
-        methodSource = trimTrailingWhitespace(methodSource.substring(0,
-            methodSource.length() - 1));
+        int jsniMethodOpenSlashIdx = methodSource.indexOf("/");
+
+        if (jsniMethodOpenSlashIdx > invocationIdx) {
+          // Invocation index is placed before JSNI open slash.
+          return NO_PROPOSALS;
+        }
+        
+        String jsniCompletedString = methodSource.substring(jsniMethodOpenSlashIdx, invocationIdx);
+
+        if (jsniCompletedString.indexOf(JSNI_METHOD_OPEN_BRACE) != -1) {
+          jsniCompletedString = jsniCompletedString.trim();
+        }
+        
+        if (JSNI_METHOD_OPEN_BRACE.startsWith(jsniCompletedString)) {
+          numCharsFilled = jsniCompletedString.length();
+        } else {
+          // Invocation index placement does not allow auto-completion.
+          return NO_PROPOSALS;
+        }
+      } else {
+        int jsniMethodCloseBracketIdx = methodSource.indexOf(")") + 1;
+        
+        if (jsniMethodCloseBracketIdx > invocationIdx) {
+          // Invocation index is not placed after method's close bracket.
+          return NO_PROPOSALS;
+        }
+        if (methodSource.substring(jsniMethodCloseBracketIdx, invocationIdx).trim().length() != 0) {
+          // Do not auto-complete if there is anything other than space between the two indices.
+          return NO_PROPOSALS;
+        }
       }
-
-      if (invocationOffset - sourceRange.getOffset() < methodSource.length()) {
-        // Invocation offset is in the middle of the native method
-        return NO_PROPOSALS;
+      
+      methodSource = methodSource.substring(invocationIdx);
+      int endIdx = methodSource.length();
+      if (methodSource.indexOf(" ") != -1) {
+        endIdx = methodSource.indexOf(" ");
+        if (methodSource.indexOf("\n") != -1 && (endIdx > methodSource.indexOf("\n"))) {
+          endIdx = methodSource.indexOf("\n");
+        }
+      } else if (methodSource.indexOf("\n") != -1) {
+        endIdx = methodSource.indexOf("\n");
       }
-
+      
+      numCharsToOverwrite = methodSource.substring(0, endIdx).trim().length();
+      
       IDocument document = jcaic.getDocument();
       int lineOfInvocationOffset = document.getLineOfOffset(invocationOffset);
       int lineOffset = document.getLineOffset(lineOfInvocationOffset);
@@ -314,21 +397,21 @@ public class JsniMethodBodyCompletionProposalComputer implements
       List<ICompletionProposal> proposals = new ArrayList<ICompletionProposal>();
 
       proposeEmptyJsniBlock(project, method, invocationOffset,
-          indentationUnits, proposals);
+          indentationUnits, proposals, numCharsFilled, numCharsToOverwrite);
 
       boolean isStatic = Flags.isStatic(flags);
       if (method.getReturnType().equals(Signature.SIG_VOID)) {
         proposeSetters(project, method, invocationOffset, indentationUnits,
-            isStatic, proposals);
+            isStatic, proposals, numCharsFilled, numCharsToOverwrite);
       } else {
         proposeGetters(project, method, invocationOffset, indentationUnits,
-            isStatic, proposals);
+            isStatic, proposals, numCharsFilled, numCharsToOverwrite);
       }
       return proposals;
     } catch (JavaModelException e) {
-      // Default to no proposals
+      // Default to no proposals.
     } catch (BadLocationException e) {
-      // Default to no proposals
+      // Default to no proposals.
     }
 
     return NO_PROPOSALS;
@@ -340,7 +423,7 @@ public class JsniMethodBodyCompletionProposalComputer implements
   }
 
   public String getErrorMessage() {
-    // Default to no error reporting
+    // Default to no error reporting.
     return null;
   }
 
@@ -357,7 +440,8 @@ public class JsniMethodBodyCompletionProposalComputer implements
   private void maybeProposeIndexedPropertyRead(IJavaProject project,
       IMethod method, int invocationOffset, int indentationUnits,
       List<ICompletionProposal> proposals, String propertyName,
-      String[] parameterNames, boolean isStatic) throws JavaModelException {
+      String[] parameterNames, boolean isStatic, int numCharsFilled, 
+      int numCharsToOverwrite) throws JavaModelException {
     if (parameterNames.length != 1) {
       return;
     }
@@ -370,7 +454,7 @@ public class JsniMethodBodyCompletionProposalComputer implements
 
       String code = createJsniBlock(project, expression, indentationUnits);
       proposals.add(createProposal(method.getFlags(), code, invocationOffset,
-          expression));
+          numCharsFilled, numCharsToOverwrite, expression));
     }
   }
 
@@ -382,7 +466,8 @@ public class JsniMethodBodyCompletionProposalComputer implements
   private void maybeProposeIndexedPropertyWrite(IJavaProject project,
       IMethod method, String propertyName, int invocationOffset,
       int indentationUnits, boolean isStatic,
-      List<ICompletionProposal> proposals) throws JavaModelException {
+      List<ICompletionProposal> proposals, int numCharsFilled, 
+      int numCharsToOverwrite) throws JavaModelException {
     String[] parameterNames = method.getParameterNames();
     if (parameterNames.length != 2) {
       return;
@@ -394,7 +479,7 @@ public class JsniMethodBodyCompletionProposalComputer implements
           parameterNames[0], parameterNames[1], isStatic);
       String code = createJsniBlock(project, expression, indentationUnits);
       proposals.add(createProposal(method.getFlags(), code, invocationOffset,
-          expression));
+          numCharsFilled, numCharsToOverwrite, expression));
     }
   }
 
@@ -404,8 +489,8 @@ public class JsniMethodBodyCompletionProposalComputer implements
    */
   private void maybeProposePropertyRead(IJavaProject project, IMethod method,
       String propertyName, int invocationOffset, int indentationUnits,
-      boolean isStatic, List<ICompletionProposal> proposals)
-      throws JavaModelException {
+      boolean isStatic, List<ICompletionProposal> proposals, int numCharsFilled, 
+      int numCharsToOverwrite) throws JavaModelException {
     String[] parameterNames = method.getParameterNames();
     if (parameterNames.length == 0 && propertyName.length() > 0) {
       String expression = "return "
@@ -413,7 +498,7 @@ public class JsniMethodBodyCompletionProposalComputer implements
 
       String code = createJsniBlock(project, expression, indentationUnits);
       proposals.add(createProposal(method.getFlags(), code, invocationOffset,
-          expression));
+          numCharsFilled, numCharsToOverwrite, expression));
     }
   }
 
@@ -424,8 +509,8 @@ public class JsniMethodBodyCompletionProposalComputer implements
    */
   private void maybeProposePropertyWrite(IJavaProject project, IMethod method,
       String propertyName, int invocationOffset, int indentationUnits,
-      boolean isStatic, List<ICompletionProposal> proposals)
-      throws JavaModelException {
+      boolean isStatic, List<ICompletionProposal> proposals, int numCharsFilled, 
+      int numCharsToOverwrite) throws JavaModelException {
     String[] parameterNames = method.getParameterNames();
     if (parameterNames.length == 1 && propertyName.length() > 0) {
       String expression = createJsPropertyWriteExpression(propertyName,
@@ -433,7 +518,7 @@ public class JsniMethodBodyCompletionProposalComputer implements
 
       String code = createJsniBlock(project, expression, indentationUnits);
       proposals.add(createProposal(method.getFlags(), code, invocationOffset,
-          expression));
+          numCharsFilled, numCharsToOverwrite, expression));
     }
   }
 
@@ -443,12 +528,13 @@ public class JsniMethodBodyCompletionProposalComputer implements
    */
   private void proposeEmptyJsniBlock(IJavaProject project, IMethod method,
       int invocationOffset, int indentationUnits,
-      List<ICompletionProposal> proposals) throws JavaModelException {
+      List<ICompletionProposal> proposals, int numCharsFilled, 
+      int numCharsToOverwrite) throws JavaModelException {
     String code = createJsniBlock(project, "", indentationUnits);
-    int cursorPosition = ("/*-{\n" + CodeFormatterUtil.createIndentString(
-        indentationUnits + 1, project)).length();
+    int cursorPosition = (CodeFormatterUtil.createIndentString(
+        indentationUnits + 1, project)).length() + (5 - numCharsFilled);
     JavaCompletionProposal javaCompletionProposal = createProposal(
-        method.getFlags(), code, invocationOffset, "");
+        method.getFlags(), code, invocationOffset, numCharsFilled, numCharsToOverwrite, "");
     javaCompletionProposal.setCursorPosition(cursorPosition);
     proposals.add(javaCompletionProposal);
   }
@@ -459,7 +545,8 @@ public class JsniMethodBodyCompletionProposalComputer implements
    */
   private void proposeGetterDelegate(IJavaProject project, IMethod method,
       int invocationOffset, int indentationUnits, boolean isStatic,
-      List<ICompletionProposal> proposals) throws JavaModelException {
+      List<ICompletionProposal> proposals, int numCharsFilled, 
+      int numCharsToOverwrite) throws JavaModelException {
     String methodName = method.getElementName();
     String[] parameterNames = method.getParameterNames();
     String expression = "return "
@@ -467,17 +554,18 @@ public class JsniMethodBodyCompletionProposalComputer implements
             parameterNames);
     String code = createJsniBlock(project, expression, indentationUnits);
     proposals.add(createProposal(method.getFlags(), code, invocationOffset,
-        expression));
+        numCharsFilled, numCharsToOverwrite, expression));
   }
 
   private void proposeGetters(IJavaProject project, IMethod method,
       int invocationOffset, int indentationUnits, boolean isStatic,
-      List<ICompletionProposal> proposals) throws JavaModelException {
+      List<ICompletionProposal> proposals, int numCharsFilled, 
+      int numCharsToOverwrite) throws JavaModelException {
 
     proposeGetterDelegate(project, method, invocationOffset, indentationUnits,
-        isStatic, proposals);
+        isStatic, proposals, numCharsFilled, numCharsToOverwrite);
 
-    // Maybe propose bean-style getter
+    // Maybe propose bean-style getter.
     String methodName = method.getElementName();
     String propertyName = methodName;
     if (methodName.startsWith("get")) {
@@ -494,14 +582,16 @@ public class JsniMethodBodyCompletionProposalComputer implements
               parameterNames);
       String code = createJsniBlock(project, expression, indentationUnits);
       proposals.add(createProposal(method.getFlags(), code, invocationOffset,
-          expression));
+          numCharsFilled, numCharsToOverwrite, expression));
     }
 
     maybeProposePropertyRead(project, method, propertyName, invocationOffset,
-        indentationUnits, isStatic, proposals);
+        indentationUnits, isStatic, proposals,
+        numCharsFilled, numCharsToOverwrite);
 
     maybeProposeIndexedPropertyRead(project, method, invocationOffset,
-        indentationUnits, proposals, propertyName, parameterNames, isStatic);
+        indentationUnits, proposals, propertyName, parameterNames, isStatic,
+        numCharsFilled, numCharsToOverwrite);
   }
 
   /**
@@ -510,21 +600,23 @@ public class JsniMethodBodyCompletionProposalComputer implements
    */
   private void proposeSetterDelegate(IJavaProject project, IMethod method,
       int invocationOffset, int indentationUnits, boolean isStatic,
-      List<ICompletionProposal> proposals) throws JavaModelException {
+      List<ICompletionProposal> proposals, int numCharsFilled, 
+      int numCharsToOverwrite) throws JavaModelException {
     String[] parameterNames = method.getParameterNames();
     String expression = createJsMethodInvocationExpression(
         method.getElementName(), isStatic, parameterNames);
     String code = createJsniBlock(project, expression, indentationUnits);
     proposals.add(createProposal(method.getFlags(), code, invocationOffset,
-        expression));
+        numCharsFilled, numCharsToOverwrite, expression));
   }
 
   private void proposeSetters(IJavaProject project, IMethod method,
       int invocationOffset, int indentationUnits, boolean isStatic,
-      List<ICompletionProposal> proposals) throws JavaModelException {
+      List<ICompletionProposal> proposals, int numCharsFilled, 
+      int numCharsToOverwrite) throws JavaModelException {
 
     proposeSetterDelegate(project, method, invocationOffset, indentationUnits,
-        isStatic, proposals);
+        isStatic, proposals, numCharsFilled, numCharsToOverwrite);
 
     String[] parameterNames = method.getParameterNames();
     String methodName = method.getElementName();
@@ -537,14 +629,16 @@ public class JsniMethodBodyCompletionProposalComputer implements
             isStatic, parameterNames);
         String code = createJsniBlock(project, expression, indentationUnits);
         proposals.add(createProposal(method.getFlags(), code, invocationOffset,
-            expression));
+            numCharsFilled, numCharsToOverwrite, expression));
       }
     }
 
     maybeProposePropertyWrite(project, method, propertyName, invocationOffset,
-        indentationUnits, isStatic, proposals);
+        indentationUnits, isStatic, proposals,
+        numCharsFilled, numCharsToOverwrite);
 
     maybeProposeIndexedPropertyWrite(project, method, propertyName,
-        invocationOffset, indentationUnits, isStatic, proposals);
+        invocationOffset, indentationUnits, isStatic, proposals,
+        numCharsFilled, numCharsToOverwrite);
   }
 }

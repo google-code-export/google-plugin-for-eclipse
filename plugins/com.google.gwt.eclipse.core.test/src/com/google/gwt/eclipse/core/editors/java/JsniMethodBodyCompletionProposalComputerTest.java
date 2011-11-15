@@ -57,12 +57,16 @@ public class JsniMethodBodyCompletionProposalComputerTest extends TestCase {
       GWTImages.JSNI_PROTECTED_METHOD_SMALL, GWTImages.JSNI_PUBLIC_METHOD_SMALL};
 
   private static void assertExpectedProposals(List<String> expectedCompletions,
-      List<ICompletionProposal> actualCompletions) {
+      List<ICompletionProposal> actualCompletions, int numCharsToOverwrite) {
     Set<String> expectedSet = new TreeSet<String>(expectedCompletions);
     Set<String> actualSet = new TreeSet<String>();
-    for (ICompletionProposal actuCompletion : actualCompletions) {
-      assertTrue(actuCompletion instanceof JavaCompletionProposal);
-      actualSet.add(((JavaCompletionProposal)actuCompletion).getReplacementString());
+    for (ICompletionProposal actualCompletion : actualCompletions) {
+      assertTrue(actualCompletion instanceof JavaCompletionProposal);
+      actualSet.add(((JavaCompletionProposal) actualCompletion).getReplacementString());
+      assertEquals("Expected Overwrite: " + numCharsToOverwrite + 
+          "Actual Overwrite: " + 
+          ((JavaCompletionProposal) actualCompletion).getReplacementLength(),
+          ((JavaCompletionProposal) actualCompletion).getReplacementLength(), numCharsToOverwrite);
     }
 
     assertTrue("Expected: " + expectedSet.toString() + "\nActual: "
@@ -94,9 +98,21 @@ public class JsniMethodBodyCompletionProposalComputerTest extends TestCase {
     return (test.getClass().getCanonicalName() + "." + test.getName()).replace(
         '.', '_');
   }
-
+  
+  // Validate all proposals for invocation index at end of second line.
   private static void validateExpectedProposals(IJavaProject javaProject,
       String fullyQualifiedClassName, String source,
+      String... expectedProposals) throws CoreException, BadLocationException {
+    validateExpectedProposals(javaProject, fullyQualifiedClassName, source, 1, 0,
+        expectedProposals);
+  }
+  
+  /**
+   *  If length of line at 'lineNum' is 'len', then validate all proposals for invocation
+   *  index varying from '(len - numCharsCompleted)' to 'len'.
+   */
+  private static void validateExpectedProposals(IJavaProject javaProject,
+      String fullyQualifiedClassName, String source, int lineNum, int numCharsCompleted,
       String... expectedProposals) throws CoreException, BadLocationException {
     IProgressMonitor monitor = new NullProgressMonitor();
 
@@ -106,21 +122,82 @@ public class JsniMethodBodyCompletionProposalComputerTest extends TestCase {
 
     ISourceViewer viewer = cuEditor.getViewer();
     IDocument document = viewer.getDocument();
-    int lineNum = 1;
+
     IRegion lineInformation = document.getLineInformation(lineNum);
     JsniMethodBodyCompletionProposalComputer jcpc = new JsniMethodBodyCompletionProposalComputer();
-    int invocationOffset = lineInformation.getOffset()
-        + lineInformation.getLength();
-    JavaContentAssistInvocationContext context = new JavaContentAssistInvocationContext(
-        viewer, invocationOffset, cuEditor);
-    List<ICompletionProposal> completions = jcpc.computeCompletionProposals(
-        context, monitor);
-
-    int indentationUnits = JsniMethodBodyCompletionProposalComputer.measureIndentationUnits(
-        document, lineNum, lineInformation.getOffset(), javaProject);
-    List<String> expected = createJsniBlocks(javaProject, indentationUnits,
-        expectedProposals);
-    assertExpectedProposals(expected, completions);
+    
+    for (int numCharsToOverwrite = 0; numCharsToOverwrite <= numCharsCompleted; 
+        numCharsToOverwrite++){
+      int invocationOffset = lineInformation.getOffset()
+          + lineInformation.getLength() - numCharsToOverwrite;
+      JavaContentAssistInvocationContext context = new JavaContentAssistInvocationContext(
+          viewer, invocationOffset, cuEditor);
+      List<ICompletionProposal> completions = jcpc.computeCompletionProposals(
+          context, monitor);
+  
+      int indentationUnits = JsniMethodBodyCompletionProposalComputer.measureIndentationUnits(
+          document, lineNum, lineInformation.getOffset(), javaProject);
+      List<String> expected = createJsniBlocks(javaProject, indentationUnits,
+          expectedProposals);
+      for (int i = 0; i < expected.size(); i++){
+        String expectedBlock = expected.get(i).substring(numCharsCompleted - numCharsToOverwrite);
+        expected.set(i, expectedBlock);
+      }
+      assertExpectedProposals(expected, completions, numCharsToOverwrite);
+    }
+  }
+  
+  /**
+   * Constructs source for testing JSNI method body completion
+   * with partial braces and comments. An example of source with
+   * comments on both sides and having partial brace is as follow.
+   */
+   // class A{
+   // /* Global comment above with brackets () */
+   // // Single line global comment ()
+   // public native int bar()/*-
+   // /* Global comment below with brackets () */
+   // public  void bar1(){
+   // /* A java method body */
+   // }
+   // public native void bar2()/*-{
+   // /* A JSNI method body */
+   // }-*/;
+  
+  private static int constructPartialBracesSource(String fullyQualifiedClassName, 
+      StringBuilder source, int numCharsCompleted, Boolean isCommentAbove, 
+      Boolean isCommentBelow) {
+    
+    // invocationLineNum is line number where auto-complete is to be tested. 
+    int invocationLineNum = 1;
+    String str = "/*-{".substring(0, numCharsCompleted) + "\n";
+    
+    source.append("class " + fullyQualifiedClassName + "{\n");
+    
+    if (isCommentAbove){
+      source.append("  /* Global comment above with brackets () */\n");
+      source.append("  // Single line global comment ()\n");
+      invocationLineNum += 2;
+    }
+    
+    // The line where auto-completion is tested.
+    source.append("  public native int bar()");
+    source.append(str);
+    
+    if (isCommentBelow){
+      source.append("  /* Global comment below with brackets () */\n");
+    }
+    
+    source.append("  public  void bar1(){\n");
+    source.append("  /* A java method body */\n");
+    source.append("  }\n");
+    source.append("  public native void bar2()/*-{\n");
+    source.append("  /* A JSNI method body */\n");
+    source.append("  }-*/;\n");
+    source.append("}\n");
+    
+    return invocationLineNum;
+    
   }
 
   /**
@@ -139,15 +216,15 @@ public class JsniMethodBodyCompletionProposalComputerTest extends TestCase {
     StringBuilder source = new StringBuilder();
     source.append("class A {\n");
 
-    // > 0 proposals if at the signature end
+    // > 0 proposals if at the signature end.
     int methodALineNum = 1;
     source.append("  private native void a()\n");
 
-    // No proposals; already has JSNI method body
+    // No proposals; already has JSNI method body.
     int methodBLineNum = 2;
     source.append("  private native void b()/*-{}-*/;\n");
 
-    // No proposals; signature ends in a semicolon
+    // No proposals; signature ends in a semicolon.
     int methodCLineNum = 3;
     source.append("  private native void c();\n");
 
@@ -158,12 +235,12 @@ public class JsniMethodBodyCompletionProposalComputerTest extends TestCase {
     ISourceViewer viewer = cuEditor.getViewer();
     IDocument document = viewer.getDocument();
 
-    // No completions if offset is before the signature
+    // No completions if offset is before the signature.
     IRegion methodALineInfo = document.getLineInformation(methodALineNum);
     assertNoProposals(monitor, jcpc, cuEditor, viewer,
         methodALineInfo.getOffset());
 
-    // No completions if the offset is in the middle of method a() signature
+    // No completions if the offset is in the middle of method a() signature.
     assertNoProposals(monitor, jcpc, cuEditor, viewer,
         methodALineInfo.getOffset() + (methodALineInfo.getLength() / 2));
 
@@ -173,17 +250,17 @@ public class JsniMethodBodyCompletionProposalComputerTest extends TestCase {
             methodALineInfo.getOffset() + methodALineInfo.getLength(), cuEditor),
         monitor).size() > 0);
 
-    // No proposals for method B
+    // No proposals for method B.
     IRegion methodBLineInfo = document.getLineInformation(methodBLineNum);
     assertNoProposals(monitor, jcpc, cuEditor, viewer,
         methodBLineInfo.getOffset() + methodBLineInfo.getLength());
 
-    // No proposals for method C
+    // No proposals for method C.
     IRegion methodCLineInfo = document.getLineInformation(methodCLineNum);
     assertNoProposals(monitor, jcpc, cuEditor, viewer,
         methodCLineInfo.getOffset() + methodCLineInfo.getLength());
 
-    // No proposals for interfaces
+    // No proposals for interfaces.
     StringBuilder sourceI = new StringBuilder();
     sourceI.append("interface B {\n");
 
@@ -197,11 +274,11 @@ public class JsniMethodBodyCompletionProposalComputerTest extends TestCase {
 
     int methodDLineNum = 1;
     IRegion methodDLineInfo = document.getLineInformation(methodDLineNum);
-    // No completions if offset is before the signature
+    // No completions if offset is before the signature.
     assertNoProposals(monitor, jcpc, cuEditor, viewer,
         methodDLineInfo.getOffset());
 
-    // No completions after the signature either
+    // No completions after the signature either.
     assertNoProposals(monitor, jcpc, cuEditor, viewer,
         methodDLineInfo.getOffset() + methodDLineInfo.getLength());
   }
@@ -356,7 +433,8 @@ public class JsniMethodBodyCompletionProposalComputerTest extends TestCase {
 
   public void testComputeCompletionsProposalsWhenBracesArePresent()
       throws CoreException, BadLocationException {
-    IJavaProject javaProject = JavaProjectUtilities.createJavaProject(synthesizeProjectNameForThisTest(this));
+    IJavaProject javaProject = 
+        JavaProjectUtilities.createJavaProject(synthesizeProjectNameForThisTest(this));
 
     StringBuilder aSource = new StringBuilder();
     aSource.append("class A {\n");
@@ -373,6 +451,82 @@ public class JsniMethodBodyCompletionProposalComputerTest extends TestCase {
     bSource.append("}\n");
 
     validateExpectedProposals(javaProject, "B", bSource.toString());
+  }
+  
+  public void testComputeCompletionsProposalsWithPartialBraces()
+      throws CoreException, BadLocationException {
+    IJavaProject javaProject = 
+        JavaProjectUtilities.createJavaProject(synthesizeProjectNameForThisTest(this));
+
+    String className = "A";
+    
+    for (int numCharsCompleted = 0; numCharsCompleted <= 4; numCharsCompleted++){
+      StringBuilder source = new StringBuilder();      
+      int invocationLineNum = constructPartialBracesSource(className, source, numCharsCompleted, 
+          false, false);
+      
+      validateExpectedProposals(javaProject, className, source.toString(), invocationLineNum, 
+          numCharsCompleted, "", "return this.bar();", "return this.bar;");
+      
+      className = className.concat("A");
+    }
+  }
+
+  public void testComputeCompletionsProposalsWithPartialBracesAndCommentsBelow()
+      throws CoreException, BadLocationException {
+    IJavaProject javaProject = 
+        JavaProjectUtilities.createJavaProject(synthesizeProjectNameForThisTest(this));
+
+    String className = "A";
+    
+    for (int numCharsCompleted = 0; numCharsCompleted <= 4; numCharsCompleted++){
+      StringBuilder source = new StringBuilder();      
+      int invocationLineNum = constructPartialBracesSource(className, source, numCharsCompleted, 
+          false, true);
+      
+      validateExpectedProposals(javaProject, className, source.toString(), invocationLineNum, 
+          numCharsCompleted, "", "return this.bar();", "return this.bar;");
+      
+      className = className.concat("A");
+    }
+  }
+
+  public void testComputeCompletionsProposalsWithPartialBracesAndCommentsAbove()
+      throws CoreException, BadLocationException {
+    IJavaProject javaProject = 
+        JavaProjectUtilities.createJavaProject(synthesizeProjectNameForThisTest(this));
+
+    String className = "A";
+    
+    for (int numCharsCompleted = 0; numCharsCompleted <= 4; numCharsCompleted++){
+      StringBuilder source = new StringBuilder();      
+      int invocationLineNum = constructPartialBracesSource(className, source, numCharsCompleted, 
+          true, false);
+      
+      validateExpectedProposals(javaProject, className, source.toString(), invocationLineNum, 
+          numCharsCompleted, "", "return this.bar();", "return this.bar;");
+      
+      className = className.concat("A");
+    }
+  }
+  
+  public void testComputeCompletionsProposalsWithPartialBracesAndCommentsOnBothSides()
+      throws CoreException, BadLocationException {
+    IJavaProject javaProject = 
+        JavaProjectUtilities.createJavaProject(synthesizeProjectNameForThisTest(this));
+
+    String className = "A";
+    
+    for (int numCharsCompleted = 0; numCharsCompleted <= 4; numCharsCompleted++){
+      StringBuilder source = new StringBuilder();      
+      int invocationLineNum = constructPartialBracesSource(className, source, numCharsCompleted, 
+          true, true);
+      
+      validateExpectedProposals(javaProject, className, source.toString(), invocationLineNum, 
+          numCharsCompleted, "", "return this.bar();", "return this.bar;");
+      
+      className = className.concat("A");
+    }
   }
 
   /**
@@ -392,8 +546,8 @@ public class JsniMethodBodyCompletionProposalComputerTest extends TestCase {
 
   /**
    * Test method for
-   * {@link JsniMethodBodyCompletionProposalComputer#computePropertyNameFromAccessorMethodName(java.lang.String, java.lang.String)}
-   * .
+   * {@link JsniMethodBodyCompletionProposalComputer#computePropertyNameFromAccessorMethodName
+   *                                                      (java.lang.String, java.lang.String)}
    */
   public void testGetPropertyName() {
     assertEquals(
@@ -410,7 +564,7 @@ public class JsniMethodBodyCompletionProposalComputerTest extends TestCase {
    * Test that the icons that we depend on are included in the registry.
    */
   public void testIcons() {
-    // TODO: This should really be a test of GWTImages
+    // TODO: This should really be a test of GWTImages.
     GWTPlugin plugin = GWTPlugin.getDefault();
     ImageRegistry imageRegistry = plugin.getImageRegistry();
     for (String imageId : IMAGE_IDS) {
