@@ -1,0 +1,14 @@
+<project name="com.google.appengine.eclipse.sdkbundle.e37.feature"
+         default="build"
+         basedir=".">
+    <property name="feature_name"
+              value="com.google.appengine.eclipse.sdkbundle.e37.feature" />
+    <property name="project.tail" value="features/${feature_name}" />
+
+    <import file="${build.project.dir}/common.ant.xml" />
+    <property name="feature.version" value="${gae.sdkbundle.version}" />
+    <extract.license.file zip.file="${gae.sdk}"
+                          property.name="feature.license"
+                          license.file="COPYING" />
+    <import file="${build.project.dir}/features/features.common.ant.xml" />
+</project>

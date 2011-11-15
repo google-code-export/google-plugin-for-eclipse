@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="com.google.appengine.eclipse.sdkbundle.e35.feature"
+      label="Google App Engine Java SDK @GAE_SDK_VERSION@"
+      version="0.0.0.qualifier"
+      provider-name="Google, Inc.">
+
+   <description>
+      Google App Engine for Java @GAE_SDK_VERSION@ SDK Bundle for Eclipse 3.5
+   </description>
+
+   <copyright>
+      Copyright 2009 Google Inc.
+   </copyright>
+
+   <license>
+      Google App Engine Software Development Kit for Java License Information
+
+      @FEATURE_LICENSE@
+   </license>
+
+   <url>
+      <update label="Google Update Site for Eclipse 3.5" url="@FEATURE_UPDATE_SITE_URL@"/>
+   </url>
+   
+   <requires>
+      <import feature="com.google.gdt.eclipse.suite.e35.feature" version="0.0.0.GDT_BASE_VERSION" match="greaterOrEqual"/>
+   </requires>
+
+   <plugin
+         id="com.google.appengine.eclipse.sdkbundle"
+         download-size="0"
+         install-size="0"
+         version="0.0.0.qualifier" unpack="true"/>
+
+</feature>

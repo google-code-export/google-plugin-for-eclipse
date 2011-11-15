@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="com.google.gwt.eclipse.sdkbundle.e37.feature"
+      label="Google Web Toolkit SDK @GWT_SDK_VERSION@"
+      version="0.0.0.qualifier"
+      provider-name="Google, Inc.">
+
+   <description>
+      Google Web Toolkit @GWT_SDK_VERSION@ SDK Bundle for Eclipse 3.7
+   </description>
+
+   <copyright>
+      Copyright 2009 - 2011 Google Inc.
+   </copyright>
+
+   <license>
+      Google Web Toolkit License Information
+
+      @FEATURE_LICENSE@
+   </license>
+
+   <url>
+      <update label="Google Update Site for Eclipse 3.7" url="@FEATURE_UPDATE_SITE_URL@"/>
+   </url>
+
+   <requires>
+      <import feature="com.google.gdt.eclipse.suite.e37.feature" version="0.0.0.GDT_BASE_VERSION" match="greaterOrEqual"/>
+   </requires>
+
+   <plugin
+         id="com.google.gwt.eclipse.sdkbundle"
+         download-size="0"
+         install-size="0"
+         version="0.0.0.qualifier" unpack="true"/>
+</feature>

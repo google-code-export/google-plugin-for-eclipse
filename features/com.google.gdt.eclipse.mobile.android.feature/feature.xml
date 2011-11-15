@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="com.google.gdt.eclipse.mobile.android.feature"
+      label="%featureName"
+      version="0.0.0.qualifier"
+      provider-name="%providerName">
+
+   <description>
+      App Engine Tools for Android extensions to the Google Plugin for Eclipse
+   </description>
+
+   <copyright>
+      Copyright 2011 Google Inc.
+   </copyright>
+
+   <plugin
+         id="com.google.gdt.eclipse.mobile.android"
+         download-size="0"
+         install-size="0"
+         version="0.0.0.qualifier"
+         unpack="false"/>
+
+</feature>

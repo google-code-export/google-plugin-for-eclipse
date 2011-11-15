@@ -1,0 +1,15 @@
+<project name="com.google.gdt.eclipse.datatools" default="build" basedir=".">
+
+    <import file="${internal.project.dir}/common.ant.xml" />
+
+    <property name="plugin.version" value="${gdt.version}" />
+
+    <import file="${internal.project.dir}/plugins/plugins.common.ant.xml" />
+
+    <target name="build">
+        <copy.plugin.src />
+        <gwt.plugin.eclipseantrunner builddir="."
+                                     buildfile="build.xml"
+                                     buildtarget="buildInEclipse" />
+    </target>
+</project>

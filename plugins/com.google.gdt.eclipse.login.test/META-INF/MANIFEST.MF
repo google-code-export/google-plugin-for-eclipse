@@ -1,0 +1,9 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Google Login Test
+Bundle-SymbolicName: com.google.gdt.eclipse.login.test
+Bundle-Version: 1.0.0
+Bundle-Vendor: Google, Inc.
+Bundle-RequiredExecutionEnvironment: J2SE-1.5
+Require-Bundle: org.junit;bundle-version="3.8.2",
+ com.google.gdt.eclipse.login;bundle-version="0.0.0"

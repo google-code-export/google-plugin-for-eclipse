@@ -1,0 +1,3 @@
+com.google.gdt.eclipse.platform.e35/debug = false
+com.google.gdt.eclipse.platform.e35/jetty/info = false
+com.google.gdt.eclipse.platform.e35/jetty/debug = false
