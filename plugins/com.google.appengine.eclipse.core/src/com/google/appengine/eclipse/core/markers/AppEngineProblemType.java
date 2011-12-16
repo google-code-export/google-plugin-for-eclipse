@@ -22,6 +22,12 @@ import com.google.gdt.eclipse.core.markers.IGdtProblemType;
  * Defines the types of AppEngine-specific problems.
  */
 public enum AppEngineProblemType implements IGdtProblemType {
+  
+  // The substring {0} must be the jdbc url for the project. 
+  WRONG_JDBC_URL(APP_ENGINE_OFFSET + 6, "Wrong jdbc url",
+      "JDBC URL does not match configured JDBC URL for Google SQL instance: {0}", 
+      GdtProblemSeverity.WARNING),
+      
   REPACKAGED_IMPORTS_DISALLOWED(
       APP_ENGINE_OFFSET + 5,
       "Repackaged imports are not allowed",

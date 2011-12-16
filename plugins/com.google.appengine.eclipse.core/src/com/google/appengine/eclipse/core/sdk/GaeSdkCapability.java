@@ -26,7 +26,7 @@ public enum GaeSdkCapability {
   /**
    * High replication datastore support.
    */
-  HRD("1.5.1"), GOOGLE_CLOUD_SQL("1.5.4");
+  HRD("1.5.1"), GOOGLE_CLOUD_SQL("1.6.1");
 
   private final String minVersion, maxVersion;
 

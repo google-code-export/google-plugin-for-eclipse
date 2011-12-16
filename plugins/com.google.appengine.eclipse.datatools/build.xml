@@ -1,10 +1,14 @@
-<project name="com.google.gdt.eclipse.datatools" default="build" basedir=".">
+<project name="com.google.appengine.eclipse.datatools" default="build" basedir=".">
 
-    <import file="${internal.project.dir}/common.ant.xml" />
+    <!-- Project-specific properties -->
+    <property name="plugin_name" value="com.google.appengine.eclipse.datatools" />
+    <property name="project.tail" value="plugins/${plugin_name}" />
+
+    <import file="${build.project.dir}/common.ant.xml" />
 
     <property name="plugin.version" value="${gdt.version}" />
 
-    <import file="${internal.project.dir}/plugins/plugins.common.ant.xml" />
+    <import file="${build.project.dir}/plugins/plugins.common.ant.xml" />
 
     <target name="build">
         <copy.plugin.src />

@@ -94,7 +94,7 @@ public abstract class UpdateWebInfFolderCommand {
 
     // Remove the old files
     List<String> fileNamesToRemove = computeWebInfLibFilesToRemove();
-    File[] filesToAdd = sdk.getWebAppClasspathFiles();
+    File[] filesToAdd = sdk.getWebAppClasspathFiles(project);
 
     try {
       // This gets called from a classpath changed listener; if the classpath
@@ -138,3 +138,4 @@ public abstract class UpdateWebInfFolderCommand {
   protected abstract void saveFilesCopiedToWebInfLib(List<File> webInfLibFiles)
       throws BackingStoreException;
 }
+

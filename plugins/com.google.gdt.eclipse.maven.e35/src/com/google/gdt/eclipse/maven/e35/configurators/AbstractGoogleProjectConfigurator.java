@@ -1,5 +1,6 @@
 /*******************************************************************************
  * Copyright 2011 Google Inc. All Rights Reserved.
+
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -14,7 +15,9 @@
  *******************************************************************************/
 package com.google.gdt.eclipse.maven.e35.configurators;
 
+import com.google.appengine.eclipse.core.nature.GaeNature;
 import com.google.gdt.eclipse.core.natures.NatureUtils;
+import com.google.gwt.eclipse.core.nature.GWTNature;
 
 import org.apache.maven.model.Plugin;
 import org.apache.maven.project.MavenProject;
@@ -121,6 +124,14 @@ public abstract class AbstractGoogleProjectConfigurator extends
    */
   protected boolean hasProjectNature(MavenProject mavenProject,
       IProject project, String natureId) {
+    if ((natureId == GWTNature.NATURE_ID) && (getGwtMavenPlugin(mavenProject) != null)) {
+      return true;
+    }
+    if ((natureId == GaeNature.NATURE_ID) && (getGaeMavenPlugin(mavenProject) != null)) {
+      return true;
+    }
+    // The use of the maven-eclipse-plugin is deprecated. The following code is
+    // only for backward compatibility.
     Plugin plugin = getEclipsePlugin(mavenProject);
     if (plugin != null) {
       Xpp3Dom configuration = (Xpp3Dom) plugin.getConfiguration();
@@ -141,6 +152,14 @@ public abstract class AbstractGoogleProjectConfigurator extends
 
   private Plugin getEclipsePlugin(MavenProject mavenProject) {
     return mavenProject.getPlugin("org.apache.maven.plugins:maven-eclipse-plugin");
+  }
+
+  private Plugin getGaeMavenPlugin(MavenProject mavenProject) {
+    return mavenProject.getPlugin("net.kindleit:maven-gae-plugin");
+  }
+
+  private Plugin getGwtMavenPlugin(MavenProject mavenProject) {
+    return mavenProject.getPlugin("org.codehaus.mojo:gwt-maven-plugin");
   }
 
 }

@@ -32,6 +32,7 @@ import com.google.gdt.eclipse.core.browser.BrowserUtilities;
 import com.google.gdt.eclipse.core.extensions.ExtensionQuery;
 import com.google.gdt.eclipse.login.GoogleLoginPrefs.Credentials;
 import com.google.gdt.eclipse.login.extensions.IClientProvider;
+import com.google.gdt.eclipse.login.extensions.LoginListener;
 import com.google.gdt.eclipse.login.ui.LoginBrowser;
 import com.google.gdt.eclipse.login.ui.LoginTrimContribution;
 
@@ -52,6 +53,7 @@ import org.eclipse.ui.dialogs.PreferencesUtil;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 
@@ -68,15 +70,17 @@ public class GoogleLogin {
       super(reason);
     }
   }
-  
+
   private static final String EXTERNAL_BROWSER_MSG = "An embedded browser could not be created for signing in. "
       + "An external web browser has been launched instead. Please sign in using this browser, "
       + "and enter the verification code here";
 
   private static final String GET_EMAIL_URL = "https://www.googleapis.com/userinfo/email";
 
+  private static final String LOGIN_NOTIFICATION_EXTENSION_POINT = "loginListener";
+
   private static GoogleLogin instance;
-  
+
   private static final JsonFactory jsonFactory = new JacksonFactory();
 
   private static final String OAUTH2_NATIVE_CALLBACK_URL = InstalledApp.OOB_REDIRECT_URI;
@@ -91,10 +95,24 @@ public class GoogleLogin {
     return instance;
   }
 
+  public static void promptToLogIn() {
+    promptToLogIn(null);
+  }
+
+  public static void promptToLogIn(final String message) {
+    if (!instance.isLoggedIn()) {
+      Display.getDefault().syncExec(new Runnable() {
+        public void run() {
+          GoogleLogin.getInstance().logIn(message);
+        }
+      });
+    }
+  }
+
   private static void showNoBrowsersMessageDialog() {
     MessageDialog noBrowsersMd = new MessageDialog(
         Display.getDefault().getActiveShell(), "No browsers found", null, null,
-        MessageDialog.ERROR, new String[]{"Ok"}, 0) {
+        MessageDialog.ERROR, new String[] {"Ok"}, 0) {
 
       @Override
       protected Control createMessageArea(Composite parent) {
@@ -111,7 +129,7 @@ public class GoogleLogin {
             PreferenceDialog dialog = PreferencesUtil.createPreferenceDialogOn(
                 Display.getDefault().getActiveShell(),
                 "org.eclipse.ui.browser.preferencePage",
-                new String[]{"org.eclipse.ui.browser.preferencePage"}, null);
+                new String[] {"org.eclipse.ui.browser.preferencePage"}, null);
 
             if (dialog != null) {
               dialog.open();
@@ -140,9 +158,9 @@ public class GoogleLogin {
   private String email;
 
   private boolean isLoggedIn;
-  
+
   private String refreshToken;
-  
+
   private LoginTrimContribution trim;
 
   protected GoogleLogin() {
@@ -164,14 +182,14 @@ public class GoogleLogin {
    * authentication headers to use to make http requests. If the user has not
    * signed in, this method will block and pop up the login dialog to the user.
    * If the user cancels signing in, this method will return null.
-   * 
+   *
    * If the access token that was used to sign this transport was revoked or has
    * expired, then execute() invoked on Request objects constructed from this
    * transport will throw an exception, for example,
    * "com.google.api.client.http.HttpResponseException: 401 Unauthorized"
-   * 
+   *
    * @param message The message to display in the login dialog if the user needs
-   *          to log in to complete this action. If null, then no message area 
+   *          to log in to complete this action. If null, then no message area
    *          is created. See {@link #logIn(String)}
    */
   public HttpRequestFactory createRequestFactory(String message) {
@@ -180,36 +198,36 @@ public class GoogleLogin {
     }
     return transport.createRequestFactory(access);
   }
-  
+
   public String fetchOAuth2ClientId() {
-    return clientId;    
+    return clientId;
   }
-  
+
   public String fetchOAuth2ClientSecret() {
-    return clientSecret;    
+    return clientSecret;
   }
-  
+
   public String fetchOAuth2RefreshToken() {
     if (!checkLoggedIn(null)) {
       return null;
     }
     return refreshToken;
   }
-  
+
   /**
    * Makes a request to get an OAuth2 access token from the OAuth2 refresh token.
    * This token is short lived (1 hour).
-   * 
+   *
    * @return an OAuth2 token, or null if there was an error or if the user
    *         wasn't signed in and canceled signing in.
    * @throws IOException if something goes wrong while fetching the token.
-   * 
+   *
    */
   public String fetchOAuth2Token() throws IOException {
     if (!checkLoggedIn(null)) {
       return null;
     }
-    
+
     try {
       access.refreshToken();
     } catch (IOException e) {
@@ -219,7 +237,7 @@ public class GoogleLogin {
     }
     return access.getAccessToken();
   }
-  
+
   /**
    * @return the user's email address, or the empty string if the user is logged
    *         out, or null if the user's email couldn't be retrieved
@@ -237,7 +255,7 @@ public class GoogleLogin {
   public boolean isConnected() {
     return connected;
   }
-  
+
   /**
    * @return true if the user is logged in, false otherwise
    */
@@ -255,14 +273,14 @@ public class GoogleLogin {
   /**
    * Pops up the dialogs to allow the user to sign in. If the user is already
    * signed in, then this does nothing and returns true.
-   * 
+   *
    * @param message if not null, then this message is displayed above the
    *          embedded browser widget. This is for when the user is presented
    *          the login dialog from doing something other than logging in, such
    *          as accessing Google API services. It should say something
    *          like
    *          "Importing a project from Google Project Hosting requires signing in."
-   * 
+   *
    * @return true if the user signed in or is already signed in, false otherwise
    */
   public boolean logIn(String message) {
@@ -286,7 +304,7 @@ public class GoogleLogin {
     } catch (Throwable e) {
       // the login browser logs its own errors
     }
-    
+
     String verificationCode;
 
     if (rc == LoginBrowser.CANCEL) {
@@ -304,7 +322,7 @@ public class GoogleLogin {
     if ((verificationCode == null) || verificationCode.isEmpty()) {
       return false;
     }
-    
+
     GoogleAuthorizationCodeGrant authRequest = new GoogleAuthorizationCodeGrant(transport,
         jsonFactory, clientId, clientSecret, verificationCode,
         OAUTH2_NATIVE_CALLBACK_URL);
@@ -330,13 +348,14 @@ public class GoogleLogin {
     email = queryEmail();
     saveCredentials();
     notifyTrim();
+    notifyLoginStatusChange(true);
     return true;
   }
 
   /**
    * Logs the user out. Pops up a question dialog asking if the user really
    * wants to quit.
-   * 
+   *
    * @return true if the user logged out, false otherwise
    */
   public boolean logOut() {
@@ -345,7 +364,7 @@ public class GoogleLogin {
 
   /**
    * Logs the user out.
-   * 
+   *
    * @param showPrompt if true, opens a prompt asking if the user really wants
    *          to log out. If false, the user is logged out
    * @return true if the user was logged out or is already logged out, and false
@@ -359,7 +378,7 @@ public class GoogleLogin {
    * When the login trim is instantiated by the UI, it calls this method so that
    * when logIn() is called by something other than the login trim itself, the
    * login trim can be notified to update its UI.
-   * 
+   *
    * @param trim
    */
   public void setLoginTrimContribution(LoginTrimContribution trim) {
@@ -453,11 +472,23 @@ public class GoogleLogin {
 
       GoogleLoginPrefs.clearStoredCredentials();
 
+      notifyLoginStatusChange(false);
       return true;
     }
     return false;
   }
-  
+
+  private void notifyLoginStatusChange(boolean login) {
+    ExtensionQuery<LoginListener> extensionQuery =
+        new ExtensionQuery<LoginListener>(
+            GoogleLoginPlugin.PLUGIN_ID, LOGIN_NOTIFICATION_EXTENSION_POINT, "class");
+
+    List<ExtensionQuery.Data<LoginListener>> loginListenerList = extensionQuery.getData();
+    for (ExtensionQuery.Data<LoginListener> loginListener : loginListenerList) {
+      loginListener.getExtensionPointData().statusChanged(login);
+    }
+  }
+
   private void notifyTrim() {
     if (trim != null) {
       Display.getDefault().asyncExec(new Runnable() {
@@ -467,7 +498,7 @@ public class GoogleLogin {
       });
     }
   }
-  
+
   /**
    * Opens an external browser for the user to login, opens a dialog telling the
    * user to login using that browser, and paste the verification code in a
@@ -535,7 +566,7 @@ public class GoogleLogin {
 
     return null;
   }
-  
+
   private void saveCredentials() {
     if (!isLoggedIn) {
       GoogleLoginPrefs.clearStoredCredentials();

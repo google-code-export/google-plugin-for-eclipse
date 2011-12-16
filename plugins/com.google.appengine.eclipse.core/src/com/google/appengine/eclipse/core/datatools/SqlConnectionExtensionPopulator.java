@@ -18,12 +18,11 @@ import com.google.appengine.eclipse.core.AppEngineCorePlugin;
 import com.google.appengine.eclipse.core.AppEngineCorePluginLog;
 import com.google.appengine.eclipse.core.properties.GoogleCloudSqlProperties;
 import com.google.appengine.eclipse.core.sdk.AppEngineBridge;
+import com.google.appengine.eclipse.core.sql.SqlUtilities;
 import com.google.gdt.eclipse.core.WebAppUtilities;
 import com.google.gdt.eclipse.core.extensions.ExtensionQuery;
-import com.google.gdt.eclipse.login.GoogleLogin;
 
 import org.eclipse.core.resources.IProject;
-import org.eclipse.equinox.security.storage.StorageException;
 
 import java.util.List;
 
@@ -33,94 +32,75 @@ import java.util.List;
  * createProfileDefinition().
  */
 public final class SqlConnectionExtensionPopulator {
-  
+
   /**
    * There types of connections cloud sql production, cloud sql testing and
-   * local mysql can be specified in the preferences ui. 
+   * local mysql can be specified in the preferences ui.
    */
   public enum ConnectionType {
-    CONNECTION_TYPE_TEST ("GoogleSQL.TestingInstance"),
-    CONNECTION_TYPE_PROD ("GoogleSQL.ProductionInstance"),
-    CONNECTION_TYPE_LOCAL_MYSQL ("MySQL");
-    
+    CONNECTION_TYPE_TEST ("GoogleCloudSQL.DevInstance"),
+    CONNECTION_TYPE_PROD ("GoogleCloudSQL.AppEngineInstance"),
+    CONNECTION_TYPE_LOCAL_MYSQL ("MySQL.DevInstance");
+
     private String displayableStringForType;
-    
+
     private ConnectionType(String displayableString) {
-      displayableStringForType = displayableString;  
+      displayableStringForType = displayableString;
     }
-    
+
     public String getDisplayableStringForType() {
       return displayableStringForType;
     }
   }
+
   private static final String GAE_MYSQL_DRIVER_CLASS = "com.mysql.jdbc.Driver";
   private static final String GAE_CLOUD_SQL_DRIVER_CLASS = "com.google.cloud.sql.Driver";
-  private static final String GAE_CLOUD_SQL_JAR_IN_WAR = "/WEB-INF/lib/" 
+  private static final String GAE_CLOUD_SQL_JAR_IN_WAR = "/WEB-INF/lib/"
       + AppEngineBridge.APPENGINE_CLOUD_SQL_JAR;
 
-  private static final String GAE_SQL_CONNECTION_PROPERTIES_EXTENSION_POINT = 
+  private static final String GAE_SQL_CONNECTION_PROPERTIES_EXTENSION_POINT =
       "gaeSqlToolsExtension";
-  
-  public static void populateCloudSQLBridgeExtender(IProject project, 
+
+  public static void populateCloudSQLBridgeExtender(IProject project,
       ConnectionType connectionType) {
-    
-    ExtensionQuery<GaeSqlToolsExtension> extensionQuery = 
+
+    ExtensionQuery<GaeSqlToolsExtension> extensionQuery =
         new ExtensionQuery<GaeSqlToolsExtension>(
             AppEngineCorePlugin.PLUGIN_ID, GAE_SQL_CONNECTION_PROPERTIES_EXTENSION_POINT,
             "class");
 
-    List<ExtensionQuery.Data<GaeSqlToolsExtension>> 
+    List<ExtensionQuery.Data<GaeSqlToolsExtension>>
         sqlPropertylUpdateListenerList = extensionQuery.getData();
-    
-    for (ExtensionQuery.Data<GaeSqlToolsExtension> bridge : 
+
+    for (ExtensionQuery.Data<GaeSqlToolsExtension> bridge :
         sqlPropertylUpdateListenerList) {
       try {
         SqlConnectionProperties connectionProperties;
         connectionProperties = getSqlConnectionPropertiesByType(project, connectionType);
         bridge.getExtensionPointData().updateConnectionProperties(connectionProperties);
-      } catch (StorageException e) {
-        AppEngineCorePluginLog.logError(e, "Error while populating connection");
       } catch (Exception e) {
+        // This could happen is it could instantiate the object of the class defined by 
+        // the extension point. 
         AppEngineCorePluginLog.logError(e, "Error while populating connection");
       }
     }
     return;
   }
-  
+
   private static String getCloudSqlJarPath(IProject project) {
     String jarPath = WebAppUtilities.getWarOutLocation(project).append(
         GAE_CLOUD_SQL_JAR_IN_WAR).toString();
     return jarPath;
   }
-  
-  private static String getCloudSqlJdbcUrl(String instanceName, String databaseName) {
-    String refreshToken = GoogleLogin.getInstance().fetchOAuth2RefreshToken();
-    String clientId = GoogleLogin.getInstance().fetchOAuth2ClientId();
-    String clientSecret = GoogleLogin.getInstance().fetchOAuth2ClientSecret();
-    String url = "jdbc:google:rdbms://" + instanceName + "/" + databaseName + "?oauth2RefreshToken=" 
-        + refreshToken;
-    if (clientId != null && clientId.trim().isEmpty() == false) {
-      url += "&oauth2ClientId=" + clientId;
-    }
-    if (clientSecret != null && clientSecret.trim().isEmpty() == false) {
-      url += "&oauth2ClientSecret=" + clientSecret;
-    }
-    return url;
-  }
-  
+
   private static String getDisplaybleConnectionId(String projectName, ConnectionType type) {
     return projectName + "." + type.getDisplayableStringForType();
   }
 
-  private static String getLocalMySqlJdbcUrl(String hostname, String databaseName,
-      String portNumber) {
-    return "jdbc:mysql://" + hostname + ":" + portNumber + "/" + databaseName;
-  }
-
-  private static SqlConnectionProperties getSqlConnectionPropertiesByType(IProject project, 
-      ConnectionType connectionType) throws StorageException {
+  private static SqlConnectionProperties getSqlConnectionPropertiesByType(IProject project,
+      ConnectionType connectionType) {
       if (connectionType == ConnectionType.CONNECTION_TYPE_LOCAL_MYSQL) {
-        return setLocalMySqlConnectionProperties(project); 
+        return setLocalMySqlConnectionProperties(project);
       } else if (connectionType == ConnectionType.CONNECTION_TYPE_PROD) {
         return setProdCloudSqlConnectorsProperties(project);
       } else if (connectionType == ConnectionType.CONNECTION_TYPE_TEST) {
@@ -132,18 +112,16 @@ public final class SqlConnectionExtensionPopulator {
   private static SqlConnectionProperties setLocalMySqlConnectionProperties(
       IProject project) {
     SqlConnectionProperties sqlConnectionProperties = new SqlConnectionProperties();
-    
+
     String username = GoogleCloudSqlProperties.getMySqlDatabaseUser(project);
     String databaseName = GoogleCloudSqlProperties.getMySqlDatabaseName(project);
     String password = GoogleCloudSqlProperties.getMySqlDatabasePassword(project);
-    String hostName = GoogleCloudSqlProperties.getMySqlHostName(project);
-    String portNumber = new Integer(GoogleCloudSqlProperties.getMySqlPort(project)).toString();
-    String driverURL = getLocalMySqlJdbcUrl(hostName, databaseName, portNumber);
+    String driverURL = SqlUtilities.getMySqlUrl(project);
     String driverClass = GAE_MYSQL_DRIVER_CLASS;
     String jarPath = GoogleCloudSqlProperties.getMySqlJdbcJar(project);
-    String connectionId = getDisplaybleConnectionId(project.getName(), 
+    String connectionId = getDisplaybleConnectionId(project.getName(),
         ConnectionType.CONNECTION_TYPE_LOCAL_MYSQL);
-    
+
     sqlConnectionProperties.setUsername(username);
     sqlConnectionProperties.setPassword(password);
     sqlConnectionProperties.setJdbcUrl(driverURL);
@@ -156,7 +134,7 @@ public final class SqlConnectionExtensionPopulator {
 
     return sqlConnectionProperties;
   }
-  
+
   private static SqlConnectionProperties setProdCloudSqlConnectorsProperties(
       IProject project) {
     SqlConnectionProperties sqlConnectionProperties = new SqlConnectionProperties();
@@ -165,49 +143,45 @@ public final class SqlConnectionExtensionPopulator {
     String instanceName = GoogleCloudSqlProperties.getProdInstanceName(project);
     String databaseName = GoogleCloudSqlProperties.getProdDatabaseName(project);
     String password = GoogleCloudSqlProperties.getProdDatabasePassword(project);
-    String driverURL = getCloudSqlJdbcUrl(instanceName, databaseName);
     String driverClass = GAE_CLOUD_SQL_DRIVER_CLASS;
     String jarPath = getCloudSqlJarPath(project);
-    String connectionId = getDisplaybleConnectionId(project.getName(), 
+    String connectionId = getDisplaybleConnectionId(project.getName(),
         ConnectionType.CONNECTION_TYPE_PROD);
 
     sqlConnectionProperties.setUsername(username);
     sqlConnectionProperties.setPassword(password);
-    sqlConnectionProperties.setJdbcUrl(driverURL);
     sqlConnectionProperties.setDatabaseName(databaseName);
     sqlConnectionProperties.setJarPath(jarPath);
     sqlConnectionProperties.setDriverClass(driverClass);
     sqlConnectionProperties.setDisplayableConnectionPropertiesId(connectionId);
     sqlConnectionProperties.setInstanceName(instanceName);
     sqlConnectionProperties.setVendor(SqlConnectionProperties.Vendor.GOOGLE);
-    
+
     return sqlConnectionProperties;
   }
- 
+
   private static SqlConnectionProperties setTestCloudSqlConnectorsProperties(
       IProject project) {
     SqlConnectionProperties sqlConnectionProperties = new SqlConnectionProperties();
-    
+
     String username = GoogleCloudSqlProperties.getTestDatabaseUser(project);
     String instanceName = GoogleCloudSqlProperties.getTestInstanceName(project);
     String databaseName = GoogleCloudSqlProperties.getTestDatabaseName(project);
     String password = GoogleCloudSqlProperties.getTestDatabasePassword(project);
-    String driverURL = getCloudSqlJdbcUrl(instanceName, databaseName);
     String driverClass = GAE_CLOUD_SQL_DRIVER_CLASS;
     String jarPath = getCloudSqlJarPath(project);
-    String connectionId = getDisplaybleConnectionId(project.getName(), 
+    String connectionId = getDisplaybleConnectionId(project.getName(),
         ConnectionType.CONNECTION_TYPE_TEST);
 
     sqlConnectionProperties.setUsername(username);
     sqlConnectionProperties.setPassword(password);
-    sqlConnectionProperties.setJdbcUrl(driverURL);
     sqlConnectionProperties.setDatabaseName(databaseName);
     sqlConnectionProperties.setJarPath(jarPath);
     sqlConnectionProperties.setDriverClass(driverClass);
     sqlConnectionProperties.setDisplayableConnectionPropertiesId(connectionId);
     sqlConnectionProperties.setInstanceName(instanceName);
     sqlConnectionProperties.setVendor(SqlConnectionProperties.Vendor.GOOGLE);
-    
+
     return sqlConnectionProperties;
   }
 }

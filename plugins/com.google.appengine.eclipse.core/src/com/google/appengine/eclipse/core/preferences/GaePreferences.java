@@ -1,31 +1,38 @@
 /*******************************************************************************
  * Copyright 2011 Google Inc. All Rights Reserved.
- *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
+ * 
+ * All rights reserved. This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License v1.0 which
+ * accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *******************************************************************************/
 package com.google.appengine.eclipse.core.preferences;
 
 import com.google.appengine.eclipse.core.AppEngineCorePlugin;
 import com.google.appengine.eclipse.core.AppEngineCorePluginLog;
 import com.google.appengine.eclipse.core.nature.GaeNature;
+import com.google.appengine.eclipse.core.properties.GaeProjectProperties;
+import com.google.appengine.eclipse.core.properties.GoogleCloudSqlProperties;
+import com.google.appengine.eclipse.core.properties.ui.GaeProjectPropertyPage;
 import com.google.appengine.eclipse.core.resources.GaeProject;
+import com.google.appengine.eclipse.core.sdk.AppEngineUpdateProjectSdkCommand;
 import com.google.appengine.eclipse.core.sdk.AppEngineUpdateWebInfFolderCommand;
 import com.google.appengine.eclipse.core.sdk.GaeSdk;
+import com.google.appengine.eclipse.core.sdk.GaeSdkCapability;
 import com.google.appengine.eclipse.core.sdk.GaeSdkContainer;
 import com.google.gdt.eclipse.core.WebAppUtilities;
 import com.google.gdt.eclipse.core.sdk.ClasspathContainerUpdateJob;
 import com.google.gdt.eclipse.core.sdk.SdkManager;
-import com.google.gdt.eclipse.core.sdk.SdkSet;
+import com.google.gdt.eclipse.core.sdk.SdkManager.SdkUpdate;
 import com.google.gdt.eclipse.core.sdk.SdkManager.SdkUpdateEvent;
+import com.google.gdt.eclipse.core.sdk.SdkSet;
+import com.google.gdt.eclipse.core.sdk.UpdateProjectSdkCommand.UpdateType;
 
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
@@ -36,6 +43,8 @@ import org.eclipse.jdt.core.JavaCore;
 import org.osgi.service.prefs.BackingStoreException;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.List;
 
 /**
  * Contains static methods for retrieving and setting GAE plug-in preferences.
@@ -52,22 +61,49 @@ public final class GaePreferences {
           throws CoreException {
         IJavaProject[] projects = JavaCore.create(
             ResourcesPlugin.getWorkspace().getRoot()).getJavaProjects();
+        GaeSdk newDefaultSdk = null;
+        List<SdkUpdate<GaeSdk>> sdkUpdates = sdkUpdateEvent.getUpdates();
+        for (SdkUpdate<GaeSdk> sdkUpdate : sdkUpdates) {
+          if (sdkUpdate.getType() == SdkUpdate.Type.NEW_DEFAULT) {
+            newDefaultSdk = sdkUpdate.getSdk();
+            break;
+          }
+        }
         for (IJavaProject project : projects) {
           if (!GaeNature.isGaeProject(project.getProject())) {
             continue;
           }
-
-          GaeProject p = GaeProject.create(project.getProject());
+          GaeSdk sdk = null;
           try {
-            GaeSdk sdk = p.getSdk();
-            if (sdk != null
-                && WebAppUtilities.hasManagedWarOut(project.getProject())) {
-              new AppEngineUpdateWebInfFolderCommand(project, p.getSdk()).execute();
+            if (GaeProjectProperties.getIsUseSdkFromDefault(project.getProject())) {
+              sdk = newDefaultSdk;
+              // If a project has Google Cloud SQL enabled and the selected sdk
+              // is incompatible with Google Cloud SQL, we do nothing.
+              if (sdk != null
+                  && GoogleCloudSqlProperties.getGoogleCloudSqlEnabled(project.getProject())
+                  && GoogleCloudSqlProperties.getLocalDevMySqlEnabled(project.getProject())
+                  && sdk.getCapabilities().contains(GaeSdkCapability.GOOGLE_CLOUD_SQL)) {
+                GaeProjectPropertyPage.copyJdbcDriverJar(project, sdk);
+              }
+            } else {
+              GaeProject p = GaeProject.create(project.getProject());
+              sdk = p.getSdk();
+            }
+            if (sdk != null && WebAppUtilities.hasManagedWarOut(project.getProject())) {
+              UpdateType updateType = AppEngineUpdateProjectSdkCommand.computeUpdateType(
+                  GaeSdk.findSdkFor(project), sdk, 
+                  GaeProjectProperties.getIsUseSdkFromDefault(project.getProject()));
+              new AppEngineUpdateProjectSdkCommand(project, GaeSdk.findSdkFor(project), sdk, 
+                  updateType, null).execute();
+              new AppEngineUpdateWebInfFolderCommand(project, sdk).execute();
             }
           } catch (FileNotFoundException e) {
             // Log the error and continue
             AppEngineCorePluginLog.logError(e);
           } catch (BackingStoreException e) {
+            // Log the error and continue
+            AppEngineCorePluginLog.logError(e);
+          } catch (IOException e) {
             // Log the error and continue
             AppEngineCorePluginLog.logError(e);
           }
@@ -111,7 +147,7 @@ public final class GaePreferences {
   }
 
   /**
-   * Sets the current {@link com.google.gdt.eclipse.core.sdk.SdkSet}
+   * Sets the current {@link com.google.gdt.eclipse.core.sdk.SdkSet} 
    * state without concern for merges, etc.
    */
   public static void setSdks(SdkSet<GaeSdk> sdkSet) {
@@ -133,3 +169,4 @@ public final class GaePreferences {
   }
 
 }
+

@@ -14,9 +14,11 @@
    </copyright>
 
    <license>
+<![CDATA[
       Google App Engine Software Development Kit for Java License Information
 
       @FEATURE_LICENSE@
+]]>
    </license>
 
    <url>

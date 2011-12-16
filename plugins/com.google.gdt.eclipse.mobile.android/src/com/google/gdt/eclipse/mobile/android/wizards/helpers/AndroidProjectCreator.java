@@ -813,9 +813,14 @@ public class AndroidProjectCreator {
     IFolder sharedFolder = gaeProject.getFolder(ProjectCreationConstants.SHARED_FOLDER_NAME);
     if (sharedFolder.exists()) {
       IFolder androidLinkedFolder = androidProject.getFolder(ProjectCreationConstants.SHARED_FOLDER_NAME);
+      /* The variable workspaceLoc is required only for Eclipse 3.5.
+       * For Eclipses after 3.5, the project specific path variable WORKSPACE_LOC
+       * can be used instead.
+       */
+      String workspaceLoc = ResourcesPlugin.getWorkspace().getRoot().getLocation().toString();
       // use variables for shared folder path
       IPath sharedFolderPath = new Path(
-          "WORKSPACE_LOC/" + gaeProject.getName() + "/" //$NON-NLS-N$
+          workspaceLoc + "/" + gaeProject.getName() + "/" //$NON-NLS-N$
               + ProjectCreationConstants.SHARED_FOLDER_NAME);
       androidLinkedFolder.createLink(sharedFolderPath,
           IResource.ALLOW_MISSING_LOCAL, new SubProgressMonitor(monitor, 1));

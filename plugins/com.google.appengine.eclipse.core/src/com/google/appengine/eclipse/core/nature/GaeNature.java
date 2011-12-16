@@ -16,6 +16,7 @@ package com.google.appengine.eclipse.core.nature;
 
 import com.google.appengine.eclipse.core.AppEngineCorePlugin;
 import com.google.appengine.eclipse.core.AppEngineCorePluginLog;
+import com.google.appengine.eclipse.core.properties.GaeProjectProperties;
 import com.google.appengine.eclipse.core.validators.GaeProjectValidator;
 import com.google.appengine.eclipse.core.validators.java.JavaCompilationParticipant;
 import com.google.gdt.eclipse.core.BuilderUtilities;
@@ -68,7 +69,9 @@ public class GaeNature implements IProjectNature {
   public void configure() throws CoreException {
     BuilderUtilities.addBuilderToProject(project,
         WebAppProjectValidator.BUILDER_ID);
-    BuilderUtilities.addBuilderToProject(project, CLASS_ENHANCER_BUILDER);
+    if (GaeProjectProperties.getGaeDatanucleusEnabled(project)) {
+      BuilderUtilities.addBuilderToProject(project, CLASS_ENHANCER_BUILDER);
+    }
     BuilderUtilities.addBuilderToProject(project,
         GaeProjectValidator.BUILDER_ID);
   }

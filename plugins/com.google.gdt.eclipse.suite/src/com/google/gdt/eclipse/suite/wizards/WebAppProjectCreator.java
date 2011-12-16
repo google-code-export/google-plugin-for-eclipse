@@ -240,6 +240,8 @@ public class WebAppProjectCreator implements IWebAppProjectCreator {
   private String[] templateSources;
 
   private boolean isGenerateEmptyProject;
+  
+  private boolean isUseGaeSdkFromDefault;
 
   protected WebAppProjectCreator() {
     // Always a java project
@@ -404,6 +406,8 @@ public class WebAppProjectCreator implements IWebAppProjectCreator {
     }
 
     if (useGae) {
+      GaeProjectProperties.setIsUseSdkFromDefault(javaProject.getProject(),
+          isUseGaeSdkFromDefault);
       setGaeDefaults(javaProject);
     }
 
@@ -501,6 +505,10 @@ public class WebAppProjectCreator implements IWebAppProjectCreator {
       System.arraycopy(templateSources, 0, this.templateSources, 0,
           templateSources.length);
     }
+  }
+ 
+  public void setIsGaeSdkFromEclipseDefault(boolean gaeSdkIsEclipseDefault) {
+    this.isUseGaeSdkFromDefault = gaeSdkIsEclipseDefault;
   }
 
   protected void createFiles(IProject project, IProgressMonitor monitor)
@@ -810,3 +818,4 @@ public class WebAppProjectCreator implements IWebAppProjectCreator {
     }
   }
 }
+

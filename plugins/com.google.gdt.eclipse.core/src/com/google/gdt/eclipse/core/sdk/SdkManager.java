@@ -39,7 +39,7 @@ public class SdkManager<T extends Sdk> {
     /**
      * Type of SDK update.
      */
-    enum Type {
+    public enum Type {
       ADDED, REMOVED, NEW_DEFAULT
     }
 
@@ -220,3 +220,4 @@ public class SdkManager<T extends Sdk> {
     }
   }
 }
+

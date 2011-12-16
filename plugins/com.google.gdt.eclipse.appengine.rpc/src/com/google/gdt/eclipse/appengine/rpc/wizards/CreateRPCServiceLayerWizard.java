@@ -17,6 +17,7 @@ package com.google.gdt.eclipse.appengine.rpc.wizards;
 import com.google.gdt.eclipse.appengine.rpc.AppEngineRPCPlugin;
 import com.google.gdt.eclipse.appengine.rpc.wizards.helpers.RpcServiceLayerCreator;
 import com.google.gdt.eclipse.core.AdapterUtilities;
+import com.google.gdt.eclipse.core.update.internal.core.UpdateQueryBuilder;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.CoreException;
@@ -92,6 +93,9 @@ public class CreateRPCServiceLayerWizard extends NewElementWizard implements
         return false;
       }
     }
+    
+    UpdateQueryBuilder.incrementRPCLayerCount(project, false);
+    
     boolean result = super.performFinish();
     if (result) {
       try {

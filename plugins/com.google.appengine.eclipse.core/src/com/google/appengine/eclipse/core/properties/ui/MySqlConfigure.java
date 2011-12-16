@@ -14,16 +14,19 @@
  *******************************************************************************/
 package com.google.appengine.eclipse.core.properties.ui;
 
+import com.google.appengine.eclipse.core.AppEngineCorePlugin;
 import com.google.appengine.eclipse.core.AppEngineCorePluginLog;
 import com.google.appengine.eclipse.core.datatools.SqlConnectionExtensionPopulator;
 import com.google.appengine.eclipse.core.properties.GoogleCloudSqlProperties;
+import com.google.gdt.eclipse.core.StatusUtilities;
+import com.google.gdt.eclipse.core.browser.BrowserUtilities;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.debug.internal.ui.SWTFactory;
-import org.eclipse.jface.dialogs.Dialog;
-import org.eclipse.jface.window.IShellProvider;
+import org.eclipse.jface.dialogs.StatusDialog;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
@@ -34,8 +37,11 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Link;
+import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.osgi.service.prefs.BackingStoreException;
@@ -43,45 +49,40 @@ import org.osgi.service.prefs.BackingStoreException;
 /**
  * Dialog box to configure MySQL instance for local development.
  */
-public class MySqlConfigure extends Dialog {
+public class MySqlConfigure extends StatusDialog {
 
   private static final String[] JDBC_FILE_FILTER_EXTENSIONS = new String[] {"*.jar"};
   private static final int TEXT_WIDTH = 220;
+  private static final String MYSQL_JDBC_JAR_URL = "http://dev.mysql.com/downloads/connector/j/";
 
-  private Label error;
-  private String errorText;
   private Text hostName;
   private Text databaseName;
   private Text port;
   private Text databaseUser;
   private Text databasePassword;
   private Text jdbcJar;
+  private Link jdbcJarLink;
   private IProject project;
 
-  public MySqlConfigure(IShellProvider parentShell, IProject project) {
-    super(parentShell);
-    this.project = project;
-  }
-
-  public MySqlConfigure(Shell parentShell, IProject project) {
-    super(parentShell);
+  public MySqlConfigure(Shell shell, IProject project) {
+    super(shell);
     this.project = project;
   }
 
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see org.eclipse.jface.dialogs.Dialog#create()
    */
   @Override
   public void create() {
     super.create();
-    getShell().setText("Configure MySql");
+    getShell().setText("Configure MySQL instance");
   }
 
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see
    * org.eclipse.jface.dialogs.Dialog#createDialogArea(org.eclipse.swt.widgets
    * .Composite)
@@ -93,24 +94,19 @@ public class MySqlConfigure extends Dialog {
     addControls(composite);
     initializeControls();
     addEventHandlers();
+    updateStatus(StatusUtilities.newInfoStatus("Please enter database details",
+        AppEngineCorePlugin.PLUGIN_ID));
     return composite;
   }
 
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see org.eclipse.jface.dialogs.Dialog#okPressed()
    */
   @Override
   protected void okPressed() {
-    Text incorrect = validateFields();
-    if (incorrect != null) {
-      error.setText(errorText);
-      error.setVisible(true);
-      incorrect.setFocus();
-      incorrect.selectAll();
-      return;
-    }
+    validateFields();
     try {
       GoogleCloudSqlProperties.setMySqlHostName(project,
           hostName.getText().trim());
@@ -124,9 +120,9 @@ public class MySqlConfigure extends Dialog {
           databasePassword.getText().trim());
       GoogleCloudSqlProperties.setMySqlJdbcJar(project,
           jdbcJar.getText().trim());
-      SqlConnectionExtensionPopulator.populateCloudSQLBridgeExtender(project,  
+      SqlConnectionExtensionPopulator.populateCloudSQLBridgeExtender(project,
           SqlConnectionExtensionPopulator.ConnectionType.CONNECTION_TYPE_LOCAL_MYSQL);
-      
+      GoogleCloudSqlProperties.setMySqlIsConfigured(project, true);
     } catch (NumberFormatException e) {
       // This case is taken care by validateFields().
       AppEngineCorePluginLog.logError(e,
@@ -136,8 +132,6 @@ public class MySqlConfigure extends Dialog {
           "Unable to save MySQL Configurations for local development Instance.");
     }
 
-    error.setVisible(false);
-
     super.okPressed();
   }
 
@@ -145,13 +139,8 @@ public class MySqlConfigure extends Dialog {
    * @param composite The composite to add controls to.
    */
   private void addControls(Composite composite) {
-    Composite errorComposite = SWTFactory.createComposite(composite, 1, 2,
-        SWT.HORIZONTAL);
-    error = new Label(errorComposite, SWT.NONE);
-    error.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-    error.setVisible(false);
     Label hostNameLabel = new Label(composite, SWT.NONE);
-    hostNameLabel.setText("Host Name");
+    hostNameLabel.setText("Hostname");
     hostNameLabel.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
     hostName = new Text(composite, SWT.BORDER);
     hostName.setLayoutData(new GridData(TEXT_WIDTH, SWT.DEFAULT));
@@ -175,9 +164,10 @@ public class MySqlConfigure extends Dialog {
     databasePasswordLabel.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
     databasePassword = new Text(composite, SWT.BORDER | SWT.PASSWORD);
     databasePassword.setLayoutData(new GridData(TEXT_WIDTH, SWT.DEFAULT));
-    Label jdbcJarLabel = new Label(composite, SWT.NONE);
-    jdbcJarLabel.setText("JDBC jar path");
-    jdbcJarLabel.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+    jdbcJarLink = new Link(composite, SWT.NONE);
+    jdbcJarLink.setText("Path to <a href=\"" + MYSQL_JDBC_JAR_URL
+        + "\">MySQL JDBC JAR</a>");
+    jdbcJarLink.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
     Composite jdbcJarComposite = SWTFactory.createComposite(composite, 2, 1,
         SWT.HORIZONTAL);
     GridLayout gridLayout = new GridLayout(2, false);
@@ -202,19 +192,39 @@ public class MySqlConfigure extends Dialog {
   }
 
   private void addEventHandlers() {
+    hostName.addModifyListener(new ModifyListener() {
+      public void modifyText(ModifyEvent e) {
+        validateFields();
+      }
+    });
     databaseName.addModifyListener(new ModifyListener() {
       public void modifyText(ModifyEvent e) {
-        fieldsChanged();
+        validateFields();
+      }
+    });
+    port.addModifyListener(new ModifyListener() {
+      public void modifyText(ModifyEvent e) {
+        validateFields();
       }
     });
     databaseUser.addModifyListener(new ModifyListener() {
       public void modifyText(ModifyEvent e) {
-        fieldsChanged();
+        validateFields();
       }
     });
     databasePassword.addModifyListener(new ModifyListener() {
       public void modifyText(ModifyEvent e) {
-        fieldsChanged();
+        validateFields();
+      }
+    });
+    jdbcJar.addModifyListener(new ModifyListener() {
+      public void modifyText(ModifyEvent e) {
+        validateFields();
+      }
+    });
+    jdbcJarLink.addListener(SWT.Selection, new Listener() {
+      public void handleEvent(Event ev) {
+        BrowserUtilities.launchBrowserAndHandleExceptions(ev.text);
       }
     });
   }
@@ -227,17 +237,6 @@ public class MySqlConfigure extends Dialog {
     return fileDialog.open();
   }
 
-  private void fieldsChanged() {
-    Text incorrect = validateFields();
-    if (incorrect != null) {
-      error.setText(errorText);
-      error.setVisible(true);
-      return;
-    } else {
-      error.setVisible(false);
-    }
-  }
-
   private void initializeControls() {
     hostName.setText(GoogleCloudSqlProperties.getMySqlHostName(project));
     databaseName.setText(GoogleCloudSqlProperties.getMySqlDatabaseName(project));
@@ -247,41 +246,37 @@ public class MySqlConfigure extends Dialog {
     jdbcJar.setText(GoogleCloudSqlProperties.getMySqlJdbcJar(project));
   }
 
-  /**
-   * Validate the fields and sets {@code errorText} message.
-   * 
-   * @return Returns the first control which is invalid. {@code null} if
-   *         everything is valid.
-   */
-  private Text validateFields() {
-    errorText = "";
-    if (hostName.getText().trim().isEmpty()) {
-      errorText = "Enter Host Name";
-      return hostName;
-    }
-    if (databaseName.getText().isEmpty()) {
-      errorText = "Enter database name";
-      return databaseName;
-    }
-    if (port.getText().isEmpty()) {
-      errorText = "Enter port number";
-      return port;
-    }
+  private void validateFields() {
+    IStatus status = StatusUtilities.OK_STATUS;
     try {
-      int x = Integer.parseInt(port.getText().trim());
+      if (hostName.getText().trim().equals("")) {
+        status = StatusUtilities.newErrorStatus("Enter hostname.", AppEngineCorePlugin.PLUGIN_ID);
+      } else if (databaseName.getText().trim().equals("")) {
+        status = StatusUtilities.newErrorStatus(
+            "Enter database name.", AppEngineCorePlugin.PLUGIN_ID);
+      } else if (port.getText().trim().equals("")) {
+        status = StatusUtilities.newErrorStatus(
+            "Enter port number.", AppEngineCorePlugin.PLUGIN_ID);
+      } else {
+        int x = Integer.parseInt(port.getText().trim());
+        if (x >= 65536 || x < 0) {
+          status = StatusUtilities.newErrorStatus("Enter a correct port number.",
+              AppEngineCorePlugin.PLUGIN_ID);
+        } else if (jdbcJar.getText().trim().isEmpty()) {
+          status = StatusUtilities.newErrorStatus(
+              "Enter JDBC Jar path.", AppEngineCorePlugin.PLUGIN_ID);
+        } else {
+          IPath jdbcPath = Path.fromOSString(jdbcJar.getText().trim());
+          if (!jdbcPath.toFile().exists()) {
+            status = StatusUtilities.newErrorStatus("JDBC Jar path does not exist.",
+                AppEngineCorePlugin.PLUGIN_ID);
+          }
+        }
+      }
     } catch (NumberFormatException e) {
-      errorText = "Enter port number correctly";
-      return port;
+      status = StatusUtilities.newErrorStatus("Enter a correct port number.",
+          AppEngineCorePlugin.PLUGIN_ID);
     }
-    if (jdbcJar.getText().trim().isEmpty()) {
-      errorText = "Enter JDBC Jar path";
-      return jdbcJar;
-    }
-    IPath jdbcPath = Path.fromOSString(jdbcJar.getText().trim());
-    if (!jdbcPath.toFile().exists()) {
-      errorText = "JDBC Jar path does not exist";
-      return jdbcJar;
-    }
-    return null;
+    updateStatus(status);
   }
 }

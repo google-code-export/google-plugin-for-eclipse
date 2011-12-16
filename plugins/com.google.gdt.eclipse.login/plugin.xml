@@ -3,6 +3,7 @@
 <plugin>
    <extension-point id="oauthScope" name="oauthScope" schema="schema/com.google.gdt.eclipse.login.oauthScope.exsd"/>
    <extension-point id="com.google.gdt.eclipse.login.oauthClientProvider" name="Oauth2 Client provider" schema="schema/com.google.gdt.eclipse.login.oauthClientProvider.exsd"/>
+   <extension-point id="com.google.gdt.eclipse.login.loginListener" name="Login Listener" schema="schema/com.google.gdt.eclipse.login.loginListener.exsd"/>
 
    <extension point="org.eclipse.ui.menus">
       <menuContribution locationURI="toolbar:org.eclipse.ui.trim.status?before=org.eclise.ui.internal.FastViewBar">

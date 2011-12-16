@@ -392,7 +392,7 @@ public class GWTProjectsRuntime extends GWTRuntime {
     return VERSION;
   }
 
-  public File[] getWebAppClasspathFiles() {
+  public File[] getWebAppClasspathFiles(IProject project) {
     try {
       File devJar = getDevJar();
       File servletJar = new File(devJar.getParentFile(), "gwt-servlet.jar");
@@ -464,3 +464,4 @@ public class GWTProjectsRuntime extends GWTRuntime {
     return VariablesPlugin.getDefault().getStringVariableManager();
   }
 }
+

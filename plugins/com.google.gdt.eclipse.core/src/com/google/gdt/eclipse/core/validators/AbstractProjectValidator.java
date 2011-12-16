@@ -1,5 +1,6 @@
 /*******************************************************************************
  * Copyright 2011 Google Inc. All Rights Reserved.
+
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -168,7 +169,7 @@ public abstract class AbstractProjectValidator extends
       closestEnclosingResourceToWebInfLib = webInfLibFolder;
     }
 
-    for (File webAppClasspathFile : sdk.getWebAppClasspathFiles()) {
+    for (File webAppClasspathFile : sdk.getWebAppClasspathFiles(getProject())) {
 
       IFile webInfLibFile = null;
 
@@ -191,3 +192,4 @@ public abstract class AbstractProjectValidator extends
     return true;
   }
 }
+

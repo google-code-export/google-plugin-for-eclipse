@@ -34,7 +34,7 @@ import java.net.URI;
  * Add an SDK's nature and container path to enable the project for that SDK.
  */
 public interface IWebAppProjectCreator {
-
+  
   /**
    * Interface for instantiators of IWebAppProjectCreator.
    */
@@ -85,4 +85,6 @@ public interface IWebAppProjectCreator {
   void setTemplates(String... templates);
 
   void setTemplateSources(String... sources);
+  
+  void setIsGaeSdkFromEclipseDefault(boolean gaeSdkIsEclipseDefault);
 }

@@ -1,5 +1,6 @@
 /*******************************************************************************
  * Copyright 2011 Google Inc. All Rights Reserved.
+
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -198,7 +199,7 @@ public abstract class GWTRuntime extends AbstractSdk {
       }
     }
 
-    public File[] getWebAppClasspathFiles() {
+    public File[] getWebAppClasspathFiles(IProject project) {
       IPath installPath = computeInstallPath();
       if (installPath != null) {
         return new File[] {installPath.append("gwt-servlet.jar").toFile()};
@@ -547,3 +548,4 @@ public abstract class GWTRuntime extends AbstractSdk {
 
   public abstract IStatus validate();
 }
+

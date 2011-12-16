@@ -14,9 +14,11 @@
    </copyright>
 
    <license>
+<![CDATA[
       Google Web Toolkit License Information
 
       @FEATURE_LICENSE@
+]]>
    </license>
 
    <url>

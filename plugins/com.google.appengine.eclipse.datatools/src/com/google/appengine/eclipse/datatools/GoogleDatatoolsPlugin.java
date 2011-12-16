@@ -16,6 +16,8 @@ package com.google.appengine.eclipse.datatools;
 
 import com.google.gdt.eclipse.core.AbstractGooglePlugin;
 
+import org.osgi.framework.BundleContext;
+
 /**
  * The plugin to add DTP support for Google Cloud SQL.
  */
@@ -23,5 +25,17 @@ public class GoogleDatatoolsPlugin extends AbstractGooglePlugin {
   private static GoogleDatatoolsPlugin plugin;
   public static GoogleDatatoolsPlugin getDefault() {
     return plugin;
+  }
+  
+  @Override
+  public void start(BundleContext context) throws Exception {
+    super.start(context);
+    plugin = this;
+  }
+
+  @Override
+  public void stop(BundleContext context) throws Exception {
+    plugin = null;
+    super.stop(context);
   }
 }

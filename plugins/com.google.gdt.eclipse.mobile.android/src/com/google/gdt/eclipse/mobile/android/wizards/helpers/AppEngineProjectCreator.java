@@ -24,6 +24,7 @@ import com.google.gdt.eclipse.core.natures.NatureUtils;
 import com.google.gdt.eclipse.core.projects.IWebAppProjectCreator;
 import com.google.gdt.eclipse.core.sdk.Sdk;
 import com.google.gdt.eclipse.core.sdk.Sdk.SdkException;
+import com.google.gdt.eclipse.core.update.internal.core.UpdateQueryBuilder;
 import com.google.gdt.eclipse.mobile.android.GdtAndroidPlugin;
 import com.google.gdt.eclipse.suite.wizards.WebAppProjectCreator;
 import com.google.gwt.eclipse.core.sdk.GWTUpdateWebInfFolderCommand;
@@ -119,6 +120,8 @@ public class AppEngineProjectCreator extends WebAppProjectCreator {
 
     // Set all of the natures on the project
     NatureUtils.addNatures(project, getNatureIds());
+    
+    UpdateQueryBuilder.incrementRPCLayerCount(project, true);
 
     // Create the java project
     IJavaProject javaProject = JavaCore.create(project);

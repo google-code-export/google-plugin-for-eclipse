@@ -30,6 +30,7 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -985,8 +986,13 @@ public class RpcServiceLayerCreator {
     if (androidProject != null) {
       IFolder androidLinkedFolder = androidProject.getFolder(SHARED_FOLDER_NAME);
       if (!androidLinkedFolder.exists()) {
+        /* The variable workspaceLoc is required only for Eclipse 3.5.
+         * For Eclipses after 3.5, the project specific path variable WORKSPACE_LOC
+         * can be used instead.
+         */
+        String workspaceLoc = ResourcesPlugin.getWorkspace().getRoot().getLocation().toString();
         // use variables for shared folder path
-        IPath sharedFolderPath = new Path("WORKSPACE_LOC/" //$NON-NLS-N$
+        IPath sharedFolderPath = new Path(workspaceLoc + "/" //$NON-NLS-N$
             + gaeProject.getName() + "/" + SHARED_FOLDER_NAME);
         androidLinkedFolder.createLink(sharedFolderPath,
             IResource.ALLOW_MISSING_LOCAL, new SubProgressMonitor(monitor, 1));

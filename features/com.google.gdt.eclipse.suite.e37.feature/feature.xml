@@ -15,7 +15,9 @@
    </copyright>
 
    <license>
+<![CDATA[
       @FEATURE_LICENSE@
+]]>
    </license>
 
    <url>
@@ -83,6 +85,8 @@
       <import feature="org.eclipse.platform" version="3.7" match="equivalent"/>
       <import plugin="org.eclipse.jdt.debug"/>
       <import plugin="org.objectweb.asm"/>
+      <import plugin="org.eclipse.update.configurator"/>
+      <import plugin="org.eclipse.team.core"/>
    </requires>
 
    <plugin
@@ -113,12 +117,12 @@
          version="0.0.0.qualifier"
          unpack="false"/>
 
-   <plugin 
-        id="com.google.gdt.eclipse.suite.ext"
-        download-size="0"
-        install-size="0"
-        version="0.0.0.qualifier"
-        unpack="false"/>
+   <plugin
+         id="com.google.gdt.eclipse.suite.ext"
+         download-size="0"
+         install-size="0"
+         version="0.0.0.qualifier"
+         unpack="false"/>
 
    <plugin
          id="com.google.gdt.eclipse.platform.shared"
@@ -229,7 +233,7 @@
          id="com.google.appengine.eclipse.datatools"
          download-size="0"
          install-size="0"
-         version="0.0.0"
+         version="0.0.0.qualifier"
          unpack="false"/>
 </feature>
 

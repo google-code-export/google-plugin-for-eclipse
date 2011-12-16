@@ -1,37 +1,44 @@
 /*******************************************************************************
  * Copyright 2011 Google Inc. All Rights Reserved.
- *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
+ * 
+ * All rights reserved. This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License v1.0 which
+ * accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *******************************************************************************/
 package com.google.appengine.eclipse.core.properties;
 
 import com.google.appengine.eclipse.core.AppEngineCorePlugin;
+import com.google.gdt.eclipse.core.StatusUtilities;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.ProjectScope;
+import org.eclipse.core.resources.WorkspaceJob;
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IScopeContext;
 import org.osgi.service.prefs.BackingStoreException;
-
-// TODO: Figure out the defaults.
 
 /**
  * Gets and sets Google Cloud SQL Service project properties.
  */
 public final class GoogleCloudSqlProperties {
 
+  private static final String GOOGLE_CLOUD_SQL_COPIED_JDBC_DRIVER_PATH =
+      "googleCloudSqlCopiedJdbcDriverPath";
+
   private static final String GOOGLE_CLOUD_SQL_ENABLED = "googleCloudSqlEnabled";
 
-  // If false, user wants to use Google Cloud SQL Service with local appengine. 
+  // If false, user wants to use Google Cloud SQL Service with local appengine.
   private static final String LOCAL_DEV_MYSQL_ENABLED = "localDevMySqlEnabled";
 
   private static final String MYSQL_DATABASE_NAME = "mySqlDatabaseName";
@@ -41,6 +48,8 @@ public final class GoogleCloudSqlProperties {
   private static final String MYSQL_DATABASE_USER = "mySqlDatabaseUser";
 
   private static final String MYSQL_HOST_NAME = "mySqlHostName";
+
+  private static final String MYSQL_IS_CONFIGURED = "mySqlIsConfigured";
 
   private static final String MYSQL_JDBC_JAR = "mySqlJdbcJar";
 
@@ -54,6 +63,8 @@ public final class GoogleCloudSqlProperties {
 
   private static final String PROD_INSTANCE_NAME = "prodInstanceName";
 
+  private static final String PROD_IS_CONFIGURED = "prodIsConfigured";
+
   private static final String TEST_DATABASE_NAME = "testDatabaseName";
 
   private static final String TEST_DATABASE_PASSWORD = "testDatabasePassword";
@@ -62,8 +73,7 @@ public final class GoogleCloudSqlProperties {
 
   private static final String TEST_INSTANCE_NAME = "testInstanceName";
 
-  private static final String GOOGLE_CLOUD_SQL_COPIED_JDBC_DRIVER_PATH =
-      "googleCloudSqlCopiedJdbcDriverPath";
+  private static final String TEST_IS_CONFIGURED = "testIsConfigured";
 
   public static String getGoogleCloudSqlCopiedJdbcDriverPath(IProject project) {
     IEclipsePreferences prefs = getProjectProperties(project);
@@ -75,7 +85,7 @@ public final class GoogleCloudSqlProperties {
     return prefs.getBoolean(GOOGLE_CLOUD_SQL_ENABLED, false);
   }
 
-  public static Boolean getLocalDevMySqlEnabled(IProject project) {
+  public static boolean getLocalDevMySqlEnabled(IProject project) {
     IEclipsePreferences prefs = getProjectProperties(project);
     return prefs.getBoolean(LOCAL_DEV_MYSQL_ENABLED, true);
   }
@@ -98,6 +108,11 @@ public final class GoogleCloudSqlProperties {
   public static String getMySqlHostName(IProject project) {
     IEclipsePreferences prefs = getProjectProperties(project);
     return prefs.get(MYSQL_HOST_NAME, "localhost");
+  }
+
+  public static boolean getMySqlIsConfigured(IProject project) {
+    IEclipsePreferences prefs = getProjectProperties(project);
+    return prefs.getBoolean(MYSQL_IS_CONFIGURED, false);
   }
 
   public static String getMySqlJdbcJar(IProject project) {
@@ -130,6 +145,11 @@ public final class GoogleCloudSqlProperties {
     return prefs.get(PROD_INSTANCE_NAME, "");
   }
 
+  public static boolean getProdIsConfigured(IProject project) {
+    IEclipsePreferences prefs = getProjectProperties(project);
+    return prefs.getBoolean(PROD_IS_CONFIGURED, false);
+  }
+
   public static String getTestDatabaseName(IProject project) {
     IEclipsePreferences prefs = getProjectProperties(project);
     return prefs.get(TEST_DATABASE_NAME, "");
@@ -150,22 +170,75 @@ public final class GoogleCloudSqlProperties {
     return prefs.get(TEST_INSTANCE_NAME, "");
   }
 
-  public static void setGoogleCloudSqlCopiedJdbcDriverPath(IProject project,
-      String path) throws BackingStoreException {
+  public static boolean getTestIsConfigured(IProject project) {
+    IEclipsePreferences prefs = getProjectProperties(project);
+    return prefs.getBoolean(TEST_IS_CONFIGURED, false);
+  }
+
+  public static void jobSetGoogleCloudSqlCopiedJdbcDriverPath(final IProject project,
+      final String cloudSqlJdbcPath) {
+    Job job = new WorkspaceJob(GaeProjectProperties.PREFERENCES_JOB_NAME) {
+      @Override
+      public IStatus runInWorkspace(IProgressMonitor monitor) {
+        try {
+          setGoogleCloudSqlCopiedJdbcDriverPath(project, cloudSqlJdbcPath);
+          return Status.OK_STATUS;
+        } catch (BackingStoreException e) {
+          return StatusUtilities.newErrorStatus(e, AppEngineCorePlugin.PLUGIN_ID);
+        }
+      }
+    };
+    GaeProjectProperties.startWorkspaceJob(job, project);
+  }
+
+  public static void jobSetGoogleCloudSqlEnabled(final IProject project,
+      final boolean cloudSqlEnabled) {
+    Job job = new WorkspaceJob(GaeProjectProperties.PREFERENCES_JOB_NAME) {
+      @Override
+      public IStatus runInWorkspace(IProgressMonitor monitor) {
+        try {
+          setGoogleCloudSqlEnabled(project, cloudSqlEnabled);
+          return Status.OK_STATUS;
+        } catch (BackingStoreException e) {
+          return StatusUtilities.newErrorStatus(e, AppEngineCorePlugin.PLUGIN_ID);
+        }
+      }
+    };
+    GaeProjectProperties.startWorkspaceJob(job, project);
+  }
+
+  public static void jobSetLocalDevMySqlEnabled(final IProject project,
+      final boolean isDevMySqlEnabled) {
+    Job job = new WorkspaceJob(GaeProjectProperties.PREFERENCES_JOB_NAME) {
+      @Override
+      public IStatus runInWorkspace(IProgressMonitor monitor) {
+        try {
+          setLocalDevMySqlEnabled(project, isDevMySqlEnabled);
+          return Status.OK_STATUS;
+        } catch (BackingStoreException e) {
+          return StatusUtilities.newErrorStatus(e, AppEngineCorePlugin.PLUGIN_ID);
+        }
+      }
+    };
+    GaeProjectProperties.startWorkspaceJob(job, project);
+  }
+
+  public static void setGoogleCloudSqlCopiedJdbcDriverPath(IProject project, String path)
+      throws BackingStoreException {
     IEclipsePreferences prefs = getProjectProperties(project);
     prefs.put(GOOGLE_CLOUD_SQL_COPIED_JDBC_DRIVER_PATH, path);
     prefs.flush();
   }
 
-  public static void setGoogleCloudSqlEnabled(IProject project,
-      Boolean googleCloudSqlEnabled) throws BackingStoreException {
+  public static void setGoogleCloudSqlEnabled(IProject project, Boolean googleCloudSqlEnabled)
+      throws BackingStoreException {
     IEclipsePreferences prefs = getProjectProperties(project);
     prefs.put(GOOGLE_CLOUD_SQL_ENABLED, googleCloudSqlEnabled.toString());
     prefs.flush();
   }
 
-  public static void setLocalDevMySqlEnabled(IProject project,
-      Boolean mySqlEnabled) throws BackingStoreException {
+  public static void setLocalDevMySqlEnabled(IProject project, Boolean mySqlEnabled)
+      throws BackingStoreException {
     IEclipsePreferences prefs = getProjectProperties(project);
     prefs.put(LOCAL_DEV_MYSQL_ENABLED, mySqlEnabled.toString());
     prefs.flush();
@@ -192,22 +265,26 @@ public final class GoogleCloudSqlProperties {
     prefs.flush();
   }
 
-  public static void setMySqlHostName(IProject project, String host)
-      throws BackingStoreException {
+  public static void setMySqlHostName(IProject project, String host) throws BackingStoreException {
     IEclipsePreferences prefs = getProjectProperties(project);
     prefs.put(MYSQL_HOST_NAME, host);
     prefs.flush();
   }
 
-  public static void setMySqlJdbcJar(IProject project, String jdbcJar)
+  public static void setMySqlIsConfigured(IProject project, Boolean isConfigured)
       throws BackingStoreException {
+    IEclipsePreferences prefs = getProjectProperties(project);
+    prefs.put(MYSQL_IS_CONFIGURED, isConfigured.toString());
+    prefs.flush();
+  }
+
+  public static void setMySqlJdbcJar(IProject project, String jdbcJar) throws BackingStoreException {
     IEclipsePreferences prefs = getProjectProperties(project);
     prefs.put(MYSQL_JDBC_JAR, jdbcJar);
     prefs.flush();
   }
 
-  public static void setMySqlPort(IProject project, int port)
-      throws BackingStoreException {
+  public static void setMySqlPort(IProject project, int port) throws BackingStoreException {
     IEclipsePreferences prefs = getProjectProperties(project);
     prefs.putInt(MYSQL_PORT, port);
     prefs.flush();
@@ -241,6 +318,13 @@ public final class GoogleCloudSqlProperties {
     prefs.flush();
   }
 
+  public static void setProdIsConfigured(IProject project, Boolean isConfigured)
+      throws BackingStoreException {
+    IEclipsePreferences prefs = getProjectProperties(project);
+    prefs.put(PROD_IS_CONFIGURED, isConfigured.toString());
+    prefs.flush();
+  }
+
   public static void setTestDatabaseName(IProject project, String database)
       throws BackingStoreException {
     IEclipsePreferences prefs = getProjectProperties(project);
@@ -266,6 +350,13 @@ public final class GoogleCloudSqlProperties {
       throws BackingStoreException {
     IEclipsePreferences prefs = getProjectProperties(project);
     prefs.put(TEST_INSTANCE_NAME, instance);
+    prefs.flush();
+  }
+
+  public static void setTestIsConfigured(IProject project, Boolean isConfigured)
+      throws BackingStoreException {
+    IEclipsePreferences prefs = getProjectProperties(project);
+    prefs.put(TEST_IS_CONFIGURED, isConfigured.toString());
     prefs.flush();
   }
 

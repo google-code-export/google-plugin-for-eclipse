@@ -15,11 +15,13 @@
    </copyright>
 
    <license>
+<![CDATA[
       @FEATURE_LICENSE@
+]]>
    </license>
 
    <url>
-      <update label="Google Update Site for Eclipse 3.5"  
+      <update label="Google Update Site for Eclipse 3.5"
               url="@FEATURE_UPDATE_SITE_URL@"/>
    </url>
 
@@ -78,6 +80,9 @@
       <import plugin="org.eclipse.swt"/>
       <import plugin="org.eclipse.ui.views.properties.tabbed"/>
       <import feature="org.eclipse.platform" version="3.5" match="equivalent"/>
+      <import plugin="org.eclipse.update.configurator"/>
+      <import plugin="org.eclipse.team.core"/>
+      <import plugin="org.eclipse.text"/>
    </requires>
 
    <plugin
@@ -108,7 +113,7 @@
          version="0.0.0.qualifier"
          unpack="false"/>
 
-   <plugin 
+   <plugin
         id="com.google.gdt.eclipse.suite.ext"
         download-size="0"
         install-size="0"
@@ -217,7 +222,7 @@
          id="com.google.appengine.eclipse.datatools"
          download-size="0"
          install-size="0"
-         version="0.0.0"
+         version="0.0.0.qualifier"
          unpack="false"/>
 </feature>
 

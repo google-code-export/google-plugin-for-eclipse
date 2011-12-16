@@ -1,5 +1,6 @@
 /*******************************************************************************
  * Copyright 2011 Google Inc. All Rights Reserved.
+
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -14,6 +15,7 @@
  *******************************************************************************/
 package com.google.gdt.eclipse.core.sdk;
 
+import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.jdt.core.IClasspathEntry;
@@ -81,9 +83,10 @@ public interface Sdk {
    * 
    * @return set of files that belong in WEB-INF/lib folder
    */
-  File[] getWebAppClasspathFiles();
+  File[] getWebAppClasspathFiles(IProject project);
 
   String toXml();
 
   IStatus validate();
 }
+

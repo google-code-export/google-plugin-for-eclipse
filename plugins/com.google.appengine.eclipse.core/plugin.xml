@@ -236,4 +236,13 @@
             scope="https://www.googleapis.com/auth/sqlservice">
       </oauthScope>
    </extension>
+   <extension
+         id="javaJdbcUrlCompletor"
+         point="org.eclipse.jdt.ui.javaCompletionProposalComputer">
+      <javaCompletionProposalComputer
+            activate="false"
+            categoryId="org.eclipse.jdt.ui.defaultProposalCategory"
+            class="com.google.appengine.eclipse.core.editor.SqlJdbcUrlCompletionComputer">
+      </javaCompletionProposalComputer>
+   </extension>
 </plugin>

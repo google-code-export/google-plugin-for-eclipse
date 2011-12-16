@@ -20,6 +20,7 @@ import com.google.gdt.eclipse.core.markers.quickfixes.JavaMarkerResolutionGenera
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaElement;
+import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.IPackageFragment;
 import org.eclipse.jdt.ui.text.java.IInvocationContext;
 import org.eclipse.jdt.ui.text.java.IJavaCompletionProposal;
@@ -52,6 +53,10 @@ public class AppEngineJavaProblemMarkerResolutionGenerator extends
               (IPackageFragment) context.getCompilationUnit().getAncestor(
                   IJavaElement.PACKAGE_FRAGMENT), 99));
           break;
+        case WRONG_JDBC_URL:
+          IJavaProject javaProject = context.getCompilationUnit().getJavaProject();
+          proposals.add(new UrlCorrectionProposal(javaProject, problem, 100));
+          break;
       }
     }
 
@@ -63,6 +68,8 @@ public class AppEngineJavaProblemMarkerResolutionGenerator extends
     if (problemType != null) {
       switch (problemType) {
         case UNSUPPORTED_JRE_TYPE:
+          return true;
+        case WRONG_JDBC_URL:
           return true;
         default:
           return false;

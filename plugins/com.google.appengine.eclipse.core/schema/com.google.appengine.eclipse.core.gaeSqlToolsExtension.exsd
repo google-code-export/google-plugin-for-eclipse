@@ -18,6 +18,7 @@
       </annotation>
       <complexType>
          <sequence>
+           <element ref="gaeSqlToolsExtension"/>
          </sequence>
          <attribute name="point" type="string" use="required">
             <annotation>
@@ -48,7 +49,7 @@
 
    <element name="gaeSqlToolsExtension">
       <complexType>
-         <attribute name="class" type="string" use="default" value="Enter default value">
+         <attribute name="class" type="string" use="required">
             <annotation>
                <documentation>
                   
@@ -60,10 +61,4 @@
          </attribute>
       </complexType>
    </element>
-
-
-
-
-
-
 </schema>

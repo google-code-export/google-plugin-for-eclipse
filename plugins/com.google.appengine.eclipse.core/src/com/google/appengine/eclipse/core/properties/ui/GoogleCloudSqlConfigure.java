@@ -14,14 +14,16 @@
  *******************************************************************************/
 package com.google.appengine.eclipse.core.properties.ui;
 
+import com.google.appengine.eclipse.core.AppEngineCorePlugin;
 import com.google.appengine.eclipse.core.AppEngineCorePluginLog;
 import com.google.appengine.eclipse.core.datatools.SqlConnectionExtensionPopulator;
 import com.google.appengine.eclipse.core.properties.GoogleCloudSqlProperties;
+import com.google.gdt.eclipse.core.StatusUtilities;
 
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.debug.internal.ui.SWTFactory;
-import org.eclipse.jface.dialogs.Dialog;
-import org.eclipse.jface.window.IShellProvider;
+import org.eclipse.jface.dialogs.StatusDialog;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
@@ -36,45 +38,38 @@ import org.osgi.service.prefs.BackingStoreException;
 /**
  * Dialog box to configure the Google Cloud SQL Service for test or prod.
  */
-public class GoogleCloudSqlConfigure extends Dialog {
+public class GoogleCloudSqlConfigure extends StatusDialog {
 
   private static final int TEXT_WIDTH = 220;
 
-  private Boolean isProd;
+  private boolean isProd;
   private IProject project;
-  private Label error;
-  private String errorText;
   private Text instanceName;
   private Text databaseName;
   private Text databaseUser;
   private Text databasePassword;
 
-  public GoogleCloudSqlConfigure(IShellProvider parentShell, IProject project, Boolean isProd) {
-    super(parentShell);
-    this.project = project;
-    this.isProd = isProd;
-  }
-
-  public GoogleCloudSqlConfigure(Shell parentShell, IProject project, Boolean isProd) {
-    super(parentShell);
+  public GoogleCloudSqlConfigure(Shell parent, IProject project,
+      boolean isProd) {
+    super(parent);
     this.project = project;
     this.isProd = isProd;
   }
 
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see org.eclipse.jface.dialogs.Dialog#create()
    */
   @Override
   public void create() {
     super.create();
-    getShell().setText("Configure Google Cloud SQL");
+    getShell().setText("Configure Google Cloud SQL instance");
   }
 
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see
    * org.eclipse.jface.dialogs.Dialog#createDialogArea(org.eclipse.swt.widgets
    * .Composite)
@@ -86,6 +81,8 @@ public class GoogleCloudSqlConfigure extends Dialog {
     addControls(composite);
     addEventHandlers();
     initializeControls();
+    updateStatus(StatusUtilities.newInfoStatus("Please enter database details",
+        AppEngineCorePlugin.PLUGIN_ID));
     return composite;
   }
 
@@ -94,14 +91,7 @@ public class GoogleCloudSqlConfigure extends Dialog {
    */
   @Override
   protected void okPressed() {
-    Text incorrect = validateFields();
-    if (incorrect != null) {
-      error.setText(errorText);
-      error.setVisible(true);
-      incorrect.setFocus();
-      incorrect.selectAll();
-      return;
-    }
+    validateFields();
     try {
       if (isProd) {
         GoogleCloudSqlProperties.setProdDatabaseName(project, databaseName.getText().trim());
@@ -110,6 +100,7 @@ public class GoogleCloudSqlConfigure extends Dialog {
         GoogleCloudSqlProperties.setProdInstanceName(project, instanceName.getText().trim());
         SqlConnectionExtensionPopulator.populateCloudSQLBridgeExtender(project,
             SqlConnectionExtensionPopulator.ConnectionType.CONNECTION_TYPE_PROD);
+        GoogleCloudSqlProperties.setProdIsConfigured(project, true);
       } else {
         GoogleCloudSqlProperties.setTestDatabaseName(project, databaseName.getText().trim());
         GoogleCloudSqlProperties.setTestDatabasePassword(project, databasePassword.getText().trim());
@@ -117,19 +108,16 @@ public class GoogleCloudSqlConfigure extends Dialog {
         GoogleCloudSqlProperties.setTestInstanceName(project, instanceName.getText().trim());
         SqlConnectionExtensionPopulator.populateCloudSQLBridgeExtender(project,
             SqlConnectionExtensionPopulator.ConnectionType.CONNECTION_TYPE_TEST);
+        GoogleCloudSqlProperties.setTestIsConfigured(project, true);
       }
     } catch (BackingStoreException e) {
-      AppEngineCorePluginLog.logError(e, "Unable to store Google SQL Service configurations");
+      AppEngineCorePluginLog.logError(e,
+          "Unable to store Google Cloud SQL configurations");
     }
     super.okPressed();
   }
 
   private void addControls(Composite composite) {
-
-    Composite errorComposite = SWTFactory.createComposite(composite, 1, 2, SWT.HORIZONTAL);
-    error = new Label(errorComposite, SWT.NONE);
-    error.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-    error.setVisible(false);
     Label instanceNameLabel = new Label(composite, SWT.NONE);
     instanceNameLabel.setText("Instance name");
     instanceNameLabel.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
@@ -155,33 +143,24 @@ public class GoogleCloudSqlConfigure extends Dialog {
   private void addEventHandlers() {
     instanceName.addModifyListener(new ModifyListener() {
       public void modifyText(ModifyEvent e) {
-        fieldsChanged();
+        validateFields();
       }
     });
     databaseName.addModifyListener(new ModifyListener() {
       public void modifyText(ModifyEvent e) {
-        fieldsChanged();
+        validateFields();
       }
     });
     databaseUser.addModifyListener(new ModifyListener() {
       public void modifyText(ModifyEvent e) {
-        fieldsChanged();
+        validateFields();
       }
     });
     databasePassword.addModifyListener(new ModifyListener() {
       public void modifyText(ModifyEvent e) {
-        fieldsChanged();
+        validateFields();
       }
     });
-  }
-
-  private void fieldsChanged() {
-    if (validateFields() != null) {
-      error.setText(errorText);
-      error.setVisible(true);
-    } else {
-      error.setVisible(false);
-    }
   }
 
   private void initializeControls() {
@@ -198,17 +177,15 @@ public class GoogleCloudSqlConfigure extends Dialog {
     }
   }
 
-  private Text validateFields() {
-    Text returnText = null;
-    errorText = "";
+  private void validateFields() {
+    IStatus status = StatusUtilities.OK_STATUS;
     if (instanceName.getText().trim().equals("")) {
-      errorText = "Enter instance name";
-      returnText = instanceName;
+      status = StatusUtilities.newErrorStatus(
+          "Enter instance name.", AppEngineCorePlugin.PLUGIN_ID);
     } else if (databaseName.getText().trim().equals("")) {
-      errorText = "Enter database name";
-      returnText = databaseName;
+      status = StatusUtilities.newErrorStatus(
+          "Enter database name.", AppEngineCorePlugin.PLUGIN_ID);
     }
-    return returnText;
+    updateStatus(status);
   }
-
 }

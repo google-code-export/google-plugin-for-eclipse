@@ -15,6 +15,7 @@
 package com.google.gdt.eclipse.suite.launch;
 
 import com.google.appengine.eclipse.core.properties.GoogleCloudSqlProperties;
+import com.google.gdt.eclipse.core.CorePluginLog;
 import com.google.gdt.eclipse.core.WebAppUtilities;
 import com.google.gdt.eclipse.core.launch.LaunchConfigurationProcessorUtilities;
 import com.google.gdt.eclipse.login.GoogleLogin;
@@ -64,7 +65,7 @@ public class WebAppLaunchDelegate extends JavaLaunchDelegate {
   public static void maybePublishModulesToWarDirectory(
       ILaunchConfiguration configuration, IProgressMonitor monitor, IJavaProject javaProject, boolean forceFullPublish)
       throws CoreException, IOException {
-    
+
     if (javaProject == null) {
       // No Java Project
       return;
@@ -199,12 +200,17 @@ public class WebAppLaunchDelegate extends JavaLaunchDelegate {
     String refreshToken = null;
     String clientId = null;
     String clientSecret = null;
+    // If the user is not logged in, prompt him to log in.
+    GoogleLogin.promptToLogIn("Please Log in to continue launch");
+    // Try to get the vm arguments.
     try {
       refreshToken = GoogleLogin.getInstance().fetchOAuth2RefreshToken();
       clientId = GoogleLogin.getInstance().fetchOAuth2ClientId();
       clientSecret = GoogleLogin.getInstance().fetchOAuth2ClientSecret();
     } catch (SWTException e) {
-      Display.getDefault().asyncExec(new Runnable() {
+      // The exception is thrown if the user did not log in when prompted. Just
+      // show an error message and exit.
+      Display.getDefault().syncExec(new Runnable() {
         public void run() {
           MessageDialog.openError(null, "Error in authentication",
               "Please sign in with your Google account before launching");
@@ -220,7 +226,15 @@ public class WebAppLaunchDelegate extends JavaLaunchDelegate {
     vmArgs += " " + ARG_RDBMS_EXTRA_PROPERTIES + rdbmsExtraPropertiesValue;
     workingCopy.setAttribute(
         IJavaLaunchConfigurationConstants.ATTR_VM_ARGUMENTS, vmArgs);
-    workingCopy.doSave();
+    ILaunchConfiguration config = workingCopy.doSave();
+    IPath path = config.getLocation();
+    if ((path != null) && path.toFile().exists()) {
+      try {
+        Runtime.getRuntime().exec("chmod 600 " + path.toString());
+      } catch (IOException e) {
+        CorePluginLog.logError("Could not change permissions on the launch config file");
+      }
+    }
     return true;
   }
 
@@ -230,7 +244,7 @@ public class WebAppLaunchDelegate extends JavaLaunchDelegate {
    * check at launch-time whether the launch config has a runtime WAR. If it
    * does not, then we ask the user for one and insert it into the launch
    * config.
-   * 
+   *
    * @param configuration the launch configuration that may be written to
    * @return true to continue the launch, false to abort silently
    * @throws CoreException

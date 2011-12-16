@@ -199,7 +199,7 @@ public class GaeChecker {
    *         supported by the Google App Engine and for each import from
    *         com.google.appengine.repackaged
    */
-  public static List<? extends CategorizedProblem> check(
+  public static List<CategorizedProblem> check(
       CompilationUnit compilationUnit, IJavaProject javaProject) {
     List<CategorizedProblem> problems = new ArrayList<CategorizedProblem>();
     IProject project = javaProject.getProject();

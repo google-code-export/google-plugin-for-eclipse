@@ -48,12 +48,7 @@ public abstract class ProjectSdkSelectionBlock<T extends Sdk> extends
     updateSdkBlockControls();
     initializeSdkComboBox();
 
-    if (isDefaultSdk(sdk)) {
-      setSelection(-1);
-    } else {
-      List<T> specificSdks = doGetSpecificSdks();
-      setSelection(specificSdks.indexOf(sdk));
-    }
+    setSdkSelectionBlockSelection(sdk);
   }
 
   public T getInitialSdk() {
@@ -116,4 +111,14 @@ public abstract class ProjectSdkSelectionBlock<T extends Sdk> extends
   private boolean isDefaultSdk(T sdk) {
     return doGetDefaultSdk() == sdk;
   }
+  
+  protected void setSdkSelectionBlockSelection(T sdk) {
+    if (isDefaultSdk(sdk)) {
+      setSelection(-1);
+    } else {
+      List<T> specificSdks = doGetSpecificSdks();
+      setSelection(specificSdks.indexOf(sdk));
+    }
+  }
 }
+

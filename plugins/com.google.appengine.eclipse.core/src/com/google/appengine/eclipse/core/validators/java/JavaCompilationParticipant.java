@@ -99,7 +99,10 @@ public class JavaCompilationParticipant extends CompilationParticipant {
       return Collections.emptyList();
     }
 
-    return GaeChecker.check(root, cu.getJavaProject());
+    List<CategorizedProblem> problems = GoogleCloudSqlChecker.check(root, cu.getJavaProject());
+    problems.addAll(GaeChecker.check(root, cu.getJavaProject()));
+    
+    return problems;
   }
 
   @Override

@@ -23,9 +23,6 @@ import com.google.api.client.http.json.JsonHttpParser;
 import com.google.api.client.json.GenericJson;
 import com.google.api.client.json.jackson.JacksonFactory;
 import com.google.api.client.util.Key;
-import com.google.gdt.eclipse.core.StringUtilities;
-import com.google.gdt.eclipse.core.extensions.ExtensionQuery;
-import com.google.gdt.eclipse.gph.extensions.IKeyProvider;
 import com.google.gdt.eclipse.gph.model.GPHProject;
 import com.google.gdt.eclipse.gph.model.GPHUser;
 import com.google.gdt.eclipse.login.GoogleLogin;
@@ -215,28 +212,13 @@ public class ProjectHostingService {
     return getProjectsImpl(requestFactory);
   }
 
-  private String getDevKey() {
-    ExtensionQuery<IKeyProvider> extensionQuery = new ExtensionQuery<IKeyProvider>(
-        ProjectHostingUIPlugin.PLUGIN_ID, "apikeyprovider", "class");
-    for (ExtensionQuery.Data<IKeyProvider> data : extensionQuery.getData()) {
-      String key = data.getExtensionPointData().getKey();
-      if (!StringUtilities.isEmpty(key) && key.trim().length() > 0) {
-        return key;
-      }
-    }
-    
-    // default to "unknown"
-    return "unknown";
-  }
-
   /**
    * @throws HttpResponseException if the http request cannot exec
    */
   private List<GPHProject> getProjectsImpl(HttpRequestFactory requestFactory)
       throws IOException {
-    final String devKey = getDevKey();
 
-    GoogleUrl hostingUrl = new GoogleUrl(PROJECT_HOSTING_URL + "?key=" + devKey);
+    GoogleUrl hostingUrl = new GoogleUrl(PROJECT_HOSTING_URL);
     GPHUserDTO userDTO = GPHUserDTO.fromTransport(requestFactory, hostingUrl);
 
     GPHUser user = new GPHUser(GoogleLogin.getInstance().getEmail(),

@@ -19,6 +19,7 @@ import com.google.gdt.eclipse.core.MockEclipsePreferences;
 
 import junit.framework.TestCase;
 
+import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IStatus;
@@ -64,7 +65,7 @@ public class SdkUtilsTest extends TestCase {
       return SdkUtils.cleanupVersion(version);
     }
 
-    public File[] getWebAppClasspathFiles() {
+    public File[] getWebAppClasspathFiles(IProject project) {
       return null;
     }
 
@@ -171,3 +172,4 @@ public class SdkUtilsTest extends TestCase {
     assertNull(maxSdkVersionForContainer2);
   }
 }
+

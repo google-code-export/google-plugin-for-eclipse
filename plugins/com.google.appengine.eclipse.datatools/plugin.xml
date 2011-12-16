@@ -4,7 +4,7 @@
    <extension
          point="com.google.appengine.eclipse.core.gaeSqlToolsExtension">
       <gaeSqlToolsExtension
-            class="com.google.appengine.eclipse.datatools.SqlPropertiesUpdateListener">
+            class="com.google.appengine.eclipse.datatools.listeners.SqlPropertiesUpdateListener">
       </gaeSqlToolsExtension>
    </extension>
    <extension
@@ -51,13 +51,6 @@
                   visible="true"
                   id="org.eclipse.datatools.connectivity.googlecloudsql.instancename">
             </property>
-            <property
-                  generated="true"
-                  id="org.eclipse.datatools.connectivity.db.URL"
-                  name="URL"
-                  required="true"
-                  visible="false">
-            </property>
          </properties>
       </driverTemplate>
       <category
@@ -69,7 +62,7 @@
    <extension
          point="org.eclipse.datatools.connectivity.ui.driverUIContributor">
       <driverUIContributor
-            class="com.google.appengine.eclipse.datatools.GoogleSqlDriverUIContributer"
+            class="com.google.appengine.eclipse.datatools.ui.GoogleSqlDriverUIContributer"
             driverTemplateID="org.eclipse.datatools.connectivity.googlecloudsql.driverTemplate"
             id="org.eclipse.datatools.connectivity.googlecloudsql.GoogleSqlDriverUIContributor">
       </driverUIContributor>
@@ -77,7 +70,7 @@
    <extension
          point="org.eclipse.datatools.connectivity.connectionProfile">
       <connectionFactory
-            class="com.google.appengine.eclipse.datatools.GoogleSqlConnectionFactory"
+            class="com.google.appengine.eclipse.datatools.connection.GoogleSqlConnectionFactory"
             id="java.sql.Connection"
             name="Google Cloud SQL Connection factory"
             profile="com.google.appengine.eclipse.datatools.connectionProfile">
@@ -88,10 +81,10 @@
             icon="icons/jdbc.gif"
             id="com.google.appengine.eclipse.datatools.connectionProfile"
             name="Google SQL Connection Profile"
-            pingFactory="com.google.appengine.eclipse.datatools.GoogleSqlConnectionFactory">
+            pingFactory="com.google.appengine.eclipse.datatools.connection.GoogleSqlConnectionFactory">
       </connectionProfile>
       <newWizard
-            class="com.google.appengine.eclipse.datatools.GoogleSqlConnectionProfileWizard"
+            class="com.google.appengine.eclipse.datatools.ui.GoogleSqlConnectionProfileWizard"
             id="com.google.appengine.eclipse.datatools.newWizard"
             name="Google Cloud SQL"
             icon="icons/new_db_element.gif"
@@ -108,7 +101,7 @@
    <extension
          point="org.eclipse.ui.propertyPages">
       <page
-            class="com.google.appengine.eclipse.datatools.GoogleSqlPropertyPage"
+            class="com.google.appengine.eclipse.datatools.ui.GoogleSqlPropertyPage"
             id="com.google.appengine.eclipse.datatools.propertyPage"
             name="Google Cloud SQL Property Page">
          <filter
@@ -121,5 +114,11 @@
             </instanceof>
          </enabledWhen>
       </page>
+   </extension>
+   <extension
+         point="com.google.gdt.eclipse.login.loginListener">
+      <loginListener
+            class="com.google.appengine.eclipse.datatools.listeners.DatatoolsLoginListener">
+      </loginListener>
    </extension>
 </plugin>

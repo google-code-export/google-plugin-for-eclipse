@@ -15,7 +15,9 @@
    </copyright>
 
    <license>
+<![CDATA[
       @FEATURE_LICENSE@
+]]>
    </license>
 
    <url>
@@ -82,6 +84,8 @@
       <import plugin="org.eclipse.equinox.p2.repository"/>
       <import plugin="org.eclipse.equinox.p2.engine"/>
       <import plugin="org.eclipse.text"/>
+      <import plugin="org.eclipse.team.core"/>
+      <import plugin="org.eclipse.update.configurator"/>
    </requires>
 
    <plugin
@@ -112,12 +116,12 @@
          version="0.0.0.qualifier"
          unpack="false"/>
 
-   <plugin 
-        id="com.google.gdt.eclipse.suite.ext"
-        download-size="0"
-        install-size="0"
-        version="0.0.0.qualifier"
-        unpack="false"/>
+   <plugin
+         id="com.google.gdt.eclipse.suite.ext"
+         download-size="0"
+         install-size="0"
+         version="0.0.0.qualifier"
+         unpack="false"/>
 
    <plugin
          id="com.google.gdt.eclipse.platform.shared"
@@ -209,7 +213,7 @@
          install-size="0"
          version="0.0.0.qualifier"
          unpack="false"/>
-   
+
    <!-- this plugin is lableled .e35 but it will work in versions >= 3.5 -->
    <plugin
          id="com.google.gdt.eclipse.maven.e35"
@@ -225,10 +229,10 @@
          version="0.0.0.qualifier"
          unpack="false"/>
 
-    <plugin
+   <plugin
          id="com.google.appengine.eclipse.datatools"
          download-size="0"
          install-size="0"
-         version="0.0.0"
+         version="0.0.0.qualifier"
          unpack="false"/>
 </feature>

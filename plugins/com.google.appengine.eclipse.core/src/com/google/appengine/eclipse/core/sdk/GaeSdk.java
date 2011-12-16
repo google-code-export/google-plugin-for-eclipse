@@ -16,6 +16,8 @@ package com.google.appengine.eclipse.core.sdk;
 
 import com.google.appengine.eclipse.core.AppEngineCorePlugin;
 import com.google.appengine.eclipse.core.AppEngineCorePluginLog;
+import com.google.appengine.eclipse.core.properties.GaeProjectProperties;
+import com.google.common.collect.Sets;
 import com.google.gdt.eclipse.core.StatusUtilities;
 import com.google.gdt.eclipse.core.extensions.ExtensionQuery;
 import com.google.gdt.eclipse.core.sdk.AbstractSdk;
@@ -200,6 +202,12 @@ public class GaeSdk extends AbstractSdk {
 
   public static final IPath APPENGINE_TOOLS_API_JAR_PATH = new Path(
       "lib/appengine-tools-api.jar");
+  
+  
+  // TODO: Get this info from the Appengine SDK info.
+  public static final Set<String> GAE_DATANUCLEUS_FILES = Sets.newHashSet(
+      "datanucleus-appengine-1.0.10.final.jar", "datanucleus-core-1.1.5.jar", "datanucleus-jpa-1.1.5.jar",
+      "geronimo-jpa_3.0_spec-1.1.1.jar", "geronimo-jta_1.1_spec-1.1.1.jar", "jdo2-api-2.3-eb.jar");
 
   private static final SdkFactory<GaeSdk> factory = new SdkFactory<GaeSdk>() {
     public GaeSdk newInstance(String name, IPath sdkHome) {
@@ -349,15 +357,26 @@ public class GaeSdk extends AbstractSdk {
       return "";
     }
   }
-
-  public File[] getWebAppClasspathFiles() {
+  
+  public File[] getWebAppClasspathFiles(IProject project) {
     try {
       AppEngineBridge appEngineBridge = AppEngineBridgeFactory.getAppEngineBridge(getInstallationPath());
-      List<File> userLibFiles = new ArrayList<File>(appEngineBridge.getUserLibFiles());      
-      String filePath = getInstallationPath() +  
-          AppEngineBridge.APPENGINE_CLOUD_SQL_JAR_PATH_IN_SDK +
-          AppEngineBridge.APPENGINE_CLOUD_SQL_JAR;
-      userLibFiles.add(new File(filePath));
+      List<File> userLibFiles = new ArrayList<File>(appEngineBridge.getUserLibFiles());
+      if (!GaeProjectProperties.getGaeDatanucleusEnabled(project)) {
+        for (File file : appEngineBridge.getUserLibFiles()) {
+          if (GAE_DATANUCLEUS_FILES.contains(file.getName())) {
+            userLibFiles.remove(file);
+          }
+        }
+      }
+
+      if (getCapabilities().contains(GaeSdkCapability.GOOGLE_CLOUD_SQL)) {
+        String filePath = getInstallationPath() +  
+            AppEngineBridge.APPENGINE_CLOUD_SQL_JAR_PATH_IN_SDK +
+            AppEngineBridge.APPENGINE_CLOUD_SQL_JAR;
+        userLibFiles.add(new File(filePath));
+      }
+
       return userLibFiles.toArray(NO_FILES);
     } catch (CoreException e) {
       // Validate method will tell you what is wrong.

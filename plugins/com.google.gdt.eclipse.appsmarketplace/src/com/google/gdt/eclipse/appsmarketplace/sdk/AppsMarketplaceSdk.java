@@ -1,5 +1,6 @@
 /*******************************************************************************
  * Copyright 2011 Google Inc. All Rights Reserved.
+
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -71,7 +72,7 @@ public final class AppsMarketplaceSdk extends AbstractSdk {
     return "1.0";
   }
 
-  public File[] getWebAppClasspathFiles() {
+  public File[] getWebAppClasspathFiles(IProject project) {
     File[] files = new File[1];
     String jarPath = AppsMarketplacePlugin.getDefault().getStateLocation() + "/"
         + AppsMarketplacePlugin.APPS_MARKETPLACE_JAR_NAME;
@@ -83,3 +84,4 @@ public final class AppsMarketplaceSdk extends AbstractSdk {
     return Status.OK_STATUS;
   }
 }
+

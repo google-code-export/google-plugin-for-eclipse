@@ -15,6 +15,7 @@
 package com.google.gdt.eclipse.suite.launch.processors;
 
 import com.google.gdt.eclipse.core.CorePluginLog;
+import com.google.gdt.eclipse.core.JavaProjectUtilities;
 import com.google.gdt.eclipse.core.launch.LaunchConfigurationUtilities;
 import com.google.gdt.eclipse.core.properties.WebAppProjectProperties;
 import com.google.gdt.eclipse.core.properties.WebAppProjectProperties.IWarOutLocationChangedListener;
@@ -25,12 +26,20 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IResourceChangeEvent;
 import org.eclipse.core.resources.IResourceChangeListener;
 import org.eclipse.core.resources.IResourceDelta;
+import org.eclipse.core.resources.ProjectScope;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.resources.WorkspaceJob;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences.INodeChangeListener;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences.NodeChangeEvent;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChangeEvent;
+import org.eclipse.core.runtime.preferences.IPreferenceNodeVisitor;
 import org.eclipse.debug.core.DebugPlugin;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.core.ILaunchConfigurationListener;
@@ -42,6 +51,8 @@ import org.eclipse.jdt.core.IJavaElementDelta;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.launching.JavaRuntime;
+import org.osgi.service.prefs.BackingStoreException;
+import org.osgi.service.prefs.Preferences;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -53,7 +64,8 @@ import java.util.List;
  */
 public enum LaunchConfigAffectingChangesListener implements
     IElementChangedListener, IResourceChangeListener,
-    ILaunchConfigurationListener, IWarOutLocationChangedListener {
+    ILaunchConfigurationListener, IWarOutLocationChangedListener,
+    IPreferenceChangeListener, INodeChangeListener {
   INSTANCE;
 
   private static void asyncUpdate(
@@ -84,6 +96,11 @@ public enum LaunchConfigAffectingChangesListener implements
             + updater.getLaunchConfiguration().getName() + " .");
       }
     }
+  }
+
+  public void added(NodeChangeEvent event) {
+    ((IEclipsePreferences) event.getChild()).addPreferenceChangeListener(this);
+    ((IEclipsePreferences) event.getChild()).addNodeChangeListener(this);
   }
 
   public void elementChanged(ElementChangedEvent event) {
@@ -142,6 +159,17 @@ public enum LaunchConfigAffectingChangesListener implements
   public void launchConfigurationRemoved(ILaunchConfiguration configuration) {
   }
 
+  public void preferenceChange(PreferenceChangeEvent event) {
+    Preferences preferences = event.getNode().parent();
+    if (preferences.parent().name() == ProjectScope.SCOPE) {
+      IJavaProject javaProject = JavaProjectUtilities.findJavaProject(preferences.name());
+      updateLaunchConfigs(javaProject);
+    }
+  }
+
+  public void removed(NodeChangeEvent event) {
+  }
+
   public void resourceChanged(IResourceChangeEvent event) {
     IResourceDelta rootDelta = event.getDelta();
     if (rootDelta == null) {
@@ -173,6 +201,21 @@ public enum LaunchConfigAffectingChangesListener implements
 
     ILaunchManager manager = DebugPlugin.getDefault().getLaunchManager();
     manager.addLaunchConfigurationListener(this);
+    
+    IEclipsePreferences projectScopeNode = ((IEclipsePreferences)
+        Platform.getPreferencesService().getRootNode().node(ProjectScope.SCOPE));
+    IPreferenceNodeVisitor visitor = new IPreferenceNodeVisitor() {
+      public boolean visit(IEclipsePreferences node) {
+        node.addNodeChangeListener(LaunchConfigAffectingChangesListener.this);
+        node.addPreferenceChangeListener(LaunchConfigAffectingChangesListener.this);
+        return true;
+      }
+    };
+    try {
+      projectScopeNode.accept(visitor);
+    } catch (BackingStoreException e) {
+      CorePluginLog.logError(e);
+    }
 
     WebAppProjectProperties.addWarOutLocationChangedListener(this);
   }

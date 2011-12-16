@@ -1,5 +1,6 @@
 /*******************************************************************************
  * Copyright 2011 Google Inc. All Rights Reserved.
+
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -17,6 +18,7 @@ package com.google.gwt.eclipse.core.runtime;
 import com.google.gwt.eclipse.core.GWTPluginLog;
 import com.google.gwt.eclipse.core.util.Util;
 
+import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Path;
@@ -101,7 +103,7 @@ public class GWTJarsRuntime extends GWTRuntime {
     return null;
   }
 
-  public File[] getWebAppClasspathFiles() {
+  public File[] getWebAppClasspathFiles(IProject project) {
     if (validate().isOK()) {
       return new File[] {getInstallationPath().append("gwt-servlet.jar").toFile()};
     }
@@ -170,3 +172,4 @@ public class GWTJarsRuntime extends GWTRuntime {
     return buildClasspathUrls;
   }
 }
+

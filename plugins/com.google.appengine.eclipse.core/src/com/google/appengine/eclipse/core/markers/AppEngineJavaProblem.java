@@ -62,6 +62,12 @@ public class AppEngineJavaProblem extends GdtJavaProblem<AppEngineProblemType> {
     return create(node, AppEngineProblemType.UNSUPPORTED_JRE_TYPE,
         new String[] {fullyQualifiedName}, null);
   }
+  
+  public static AppEngineJavaProblem createWrongJdbcUrlError(ASTNode node, int length, String jdbcUrl) {
+    AppEngineProblemType problemType = AppEngineProblemType.WRONG_JDBC_URL;
+    return new AppEngineJavaProblem(node, node.getStartPosition(), length, 
+        problemType, problemType.getDefaultSeverity(), new String[] {jdbcUrl}, null);
+  }
 
   /**
    * For unit tests.
@@ -72,7 +78,7 @@ public class AppEngineJavaProblem extends GdtJavaProblem<AppEngineProblemType> {
     return new AppEngineJavaProblem(filename, offset, length, line, column,
         AppEngineProblemType.UNSUPPORTED_JRE_TYPE, severity,
         new String[] {fullyQualifiedName}, null);
-  }
+  }  
 
   private static AppEngineJavaProblem create(ASTNode node,
       AppEngineProblemType problemType, String[] messageArgs,

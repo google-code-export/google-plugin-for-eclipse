@@ -20,6 +20,7 @@ import com.google.gdt.eclipse.maven.Activator;
 import com.google.gdt.eclipse.maven.MavenUtils;
 import com.google.gwt.eclipse.core.runtime.GWTRuntime.ProjectBoundSdk;
 
+import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Path;
@@ -212,7 +213,8 @@ public class GWTMavenRuntime extends ProjectBoundSdk {
    * Maven-based sdks do not contribute libraries that should be placed in the
    * <code>WEB-INF/lib</code> folder.
    */
-  public File[] getWebAppClasspathFiles() {
+  @Override
+  public File[] getWebAppClasspathFiles(IProject project) {
     return new File[0];
   }
 
@@ -281,3 +283,4 @@ public class GWTMavenRuntime extends ProjectBoundSdk {
     return null;
   }
 }
+

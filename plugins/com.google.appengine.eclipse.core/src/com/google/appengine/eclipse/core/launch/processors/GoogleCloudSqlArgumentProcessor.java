@@ -16,6 +16,7 @@ package com.google.appengine.eclipse.core.launch.processors;
 
 import com.google.appengine.eclipse.core.nature.GaeNature;
 import com.google.appengine.eclipse.core.properties.GoogleCloudSqlProperties;
+import com.google.appengine.eclipse.core.sql.SqlUtilities;
 import com.google.gdt.eclipse.core.StringUtilities;
 import com.google.gdt.eclipse.core.launch.ILaunchConfigurationProcessor;
 import com.google.gdt.eclipse.core.launch.LaunchConfigurationProcessorUtilities;
@@ -39,9 +40,9 @@ public class GoogleCloudSqlArgumentProcessor implements
   private static final String ARG_RDBMS_SERVER_HOSTED_VALUE = "hosted";
   private static final String ARG_RDBMS_SERVER_LOCAL_VALUE = "local";
   private static final String ARG_RDBMS_URL = "-Drdbms.url=";
-  private static final String ARG_RDBMS_URL_VALUE_FORMAT = "jdbc:mysql://%s:%s/%s?";
-  private static final String ARG_RDBMS_URL_VALUE_USER_FORMAT = "user=%s&";
-  private static final String ARG_RDBMS_URL_VALUE_PASSWORD_FORMAT = "password=%s&";
+  private static final String ARG_RDBMS_DATABASE = "-Drdbms.database=";
+  private static final String ARG_RDBMS_USER = "-Drdbms.user=";
+  private static final String ARG_RDBMS_PASSWORD = "-Drdbms.password=";
 
   public void update(ILaunchConfigurationWorkingCopy launchConfig,
       IJavaProject javaProject, List<String> programArgs, List<String> vmArgs) {
@@ -79,6 +80,9 @@ public class GoogleCloudSqlArgumentProcessor implements
     remove(vmArgs, ARG_RDBMS_SERVER);
     remove(vmArgs, ARG_RDBMS_DRIVER);
     remove(vmArgs, ARG_RDBMS_URL);
+    remove(vmArgs, ARG_RDBMS_DATABASE);
+    remove(vmArgs, ARG_RDBMS_USER);
+    remove(vmArgs, ARG_RDBMS_PASSWORD);
   }
 
   private void updateGoogleCloudSqlLaunchCongiguration(
@@ -87,35 +91,32 @@ public class GoogleCloudSqlArgumentProcessor implements
     String password = GoogleCloudSqlProperties.getTestDatabasePassword(javaProject.getProject());
     String user = GoogleCloudSqlProperties.getTestDatabaseUser(javaProject.getProject());
     String instance = GoogleCloudSqlProperties.getTestInstanceName(javaProject.getProject());
+    String database = GoogleCloudSqlProperties.getTestDatabaseName(javaProject.getProject());
     if (instance.trim().isEmpty()) {
       return;
     }
     vmArgs.add(0, ARG_RDBMS_SERVER + ARG_RDBMS_SERVER_HOSTED_VALUE);
     vmArgs.add(0, ARG_RDBMS_HOSTED_INSTANCE + "\"" + instance + "\"");
+    vmArgs.add(0, ARG_RDBMS_DATABASE + "\"" + database + "\"");
+    vmArgs.add(0, ARG_RDBMS_USER + "\"" + user + "\"");
+    vmArgs.add(0, ARG_RDBMS_PASSWORD + "\"" + password + "\"");
   }
 
   private void updateMySqlLaunchCongiguration(
       ILaunchConfigurationWorkingCopy launchConfig, IJavaProject javaProject,
       List<String> programArgs, List<String> vmArgs) {
-    String password = GoogleCloudSqlProperties.getMySqlDatabasePassword(javaProject.getProject());
-    String user = GoogleCloudSqlProperties.getMySqlDatabaseUser(javaProject.getProject());
-    String host = GoogleCloudSqlProperties.getMySqlHostName(javaProject.getProject());
-    String port = Integer.toString(GoogleCloudSqlProperties.getMySqlPort(javaProject.getProject()));
-    String database = GoogleCloudSqlProperties.getMySqlDatabaseName(javaProject.getProject());
-    if (database.isEmpty()) {
+
+    String rdbmsUrlValue = SqlUtilities.getMySqlUrl(javaProject.getProject());
+
+    if (rdbmsUrlValue.isEmpty()) {
       return;
     }
-    StringBuilder rdbmsUrlValue = new StringBuilder(String.format(
-        ARG_RDBMS_URL_VALUE_FORMAT, host, port, database));
-    if (!user.isEmpty()) {
-      rdbmsUrlValue.append(String.format(ARG_RDBMS_URL_VALUE_USER_FORMAT, user));
-    }
-    if (!password.isEmpty()) {
-      rdbmsUrlValue.append(String.format(ARG_RDBMS_URL_VALUE_PASSWORD_FORMAT,
-          password));
-    }
-    // The last char will be either ? or & which is not required.
-    rdbmsUrlValue.deleteCharAt(rdbmsUrlValue.length() - 1);
+    String database = GoogleCloudSqlProperties.getMySqlDatabaseName(javaProject.getProject());
+    String user = GoogleCloudSqlProperties.getMySqlDatabaseUser(javaProject.getProject());
+    String password = GoogleCloudSqlProperties.getMySqlDatabasePassword(javaProject.getProject());
+    vmArgs.add(0, ARG_RDBMS_DATABASE + "\"" + database + "\"");
+    vmArgs.add(0, ARG_RDBMS_USER + "\"" + user + "\"");
+    vmArgs.add(0, ARG_RDBMS_PASSWORD + "\"" + password + "\"");
     vmArgs.add(0, ARG_RDBMS_SERVER + ARG_RDBMS_SERVER_LOCAL_VALUE);
     vmArgs.add(0, ARG_RDBMS_DRIVER + ARG_RDBMS_DRIVER_VALUE);
     vmArgs.add(0, ARG_RDBMS_URL + rdbmsUrlValue);
