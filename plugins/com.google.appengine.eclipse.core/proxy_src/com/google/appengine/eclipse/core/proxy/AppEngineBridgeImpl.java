@@ -1,16 +1,16 @@
 /*******************************************************************************
  * Copyright 2011 Google Inc. All Rights Reserved.
- *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
+ * 
+ *  All rights reserved. This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License v1.0 which
+ * accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *  Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *******************************************************************************/
 package com.google.appengine.eclipse.core.proxy;
 
@@ -20,12 +20,12 @@ import com.google.appengine.eclipse.core.sdk.AppEngineBridge;
 import com.google.appengine.tools.admin.AdminException;
 import com.google.appengine.tools.admin.AppAdmin;
 import com.google.appengine.tools.admin.AppAdminFactory;
+import com.google.appengine.tools.admin.AppAdminFactory.ConnectOptions;
 import com.google.appengine.tools.admin.Application;
 import com.google.appengine.tools.admin.UpdateFailureEvent;
 import com.google.appengine.tools.admin.UpdateListener;
 import com.google.appengine.tools.admin.UpdateProgressEvent;
 import com.google.appengine.tools.admin.UpdateSuccessEvent;
-import com.google.appengine.tools.admin.AppAdminFactory.ConnectOptions;
 import com.google.appengine.tools.info.SdkInfo;
 import com.google.appengine.tools.info.UpdateCheck;
 import com.google.appengine.tools.info.Version;
@@ -71,17 +71,19 @@ public class AppEngineBridgeImpl implements AppEngineBridge {
     private static class MessageHeaders {
 
       // Headers should go in the order specified in this array.
-      private static final PrefixHeaderPair[] prefixHeaderPairs = new PrefixHeaderPair[]{
-          new PrefixHeaderPair("Preparing to deploy", null,
-              "Created staging directory", "Scanning files on local disk"),
-          new PrefixHeaderPair("Deploying", null, "Uploading"),
-          new PrefixHeaderPair("Verifying availability",
-              "Verifying availability of", "Will check again in 1 seconds."),
-          new PrefixHeaderPair("Updating datastore", null, "Uploading index")};
+      private static final
+          PrefixHeaderPair[] prefixHeaderPairs = new PrefixHeaderPair[] {
+              new PrefixHeaderPair("Preparing to deploy", null,
+                  "Created staging directory", "Scanning files on local disk"),
+              new PrefixHeaderPair(
+                  "Deploying", null, "Uploading"), new PrefixHeaderPair(
+                  "Verifying availability", "Verifying availability of",
+                  "Will check again in 1 seconds."), new PrefixHeaderPair(
+                  "Updating datastore", null, "Uploading index")};
 
       /*
-       * The headers should go in the sequence specified in the array,
-       * so keep track of which header we're currently looking for.
+       * The headers should go in the sequence specified in the array, so keep
+       * track of which header we're currently looking for.
        */
       private int currentPrefixHeaderPair;
 
@@ -105,16 +107,17 @@ public class AppEngineBridgeImpl implements AppEngineBridge {
     private static class PrefixHeaderPair {
       // the header that should be displayed on the console
       final String header;
-      
+
       // the prefixes of console messages that trigger this header
       final String[] msgPrefixes;
-      
+
       // the header that should be displayed on the progress dialog, mainly for
       // displaying "verifying availability" on the console and displaying
       // "verifying availability of "backend""
       final String taskHeader;
 
-      PrefixHeaderPair(String header, String taskHeader, String... msgPrefixes) {
+      PrefixHeaderPair(
+          String header, String taskHeader, String... msgPrefixes) {
         this.msgPrefixes = msgPrefixes;
         this.header = header;
         if (taskHeader == null) {
@@ -156,7 +159,8 @@ public class AppEngineBridgeImpl implements AppEngineBridge {
     private static boolean isJspCompilationException(Throwable ex) {
       if (ex != null) {
         try {
-          Class<?> jspCompilationExceptionClass = Class.forName("com.google.appengine.tools.admin.JspCompilationException");
+          Class<?> jspCompilationExceptionClass = Class.forName(
+              "com.google.appengine.tools.admin.JspCompilationException");
           return jspCompilationExceptionClass.isAssignableFrom(ex.getClass());
         } catch (ClassNotFoundException e) {
           // Expected on App Engine SDK 1.2.0; no need to log
@@ -164,6 +168,7 @@ public class AppEngineBridgeImpl implements AppEngineBridge {
       }
       return false;
     }
+
     private int deployments; // how many units have been deployed so far
     private String deploymentUnitName;
     private final int deploymentUnitsCount; // the total number of deployments
@@ -227,8 +232,8 @@ public class AppEngineBridgeImpl implements AppEngineBridge {
       // Check for user cancellation
       if (monitor.isCanceled()) {
         event.cancel();
-        status = new Status(IStatus.CANCEL, AppEngineCorePlugin.PLUGIN_ID,
-            "User cancelled");
+        status = new Status(
+            IStatus.CANCEL, AppEngineCorePlugin.PLUGIN_ID, "User cancelled");
         outputWriter.println(status.getMessage());
       }
     }
@@ -278,39 +283,8 @@ public class AppEngineBridgeImpl implements AppEngineBridge {
   // version information correctly.
   private static final String MIN_SUPPORTED_VERSION = "0.0.0";
 
-  private static final VersionComparator VERSION_COMPARATOR = new VersionComparator();
-
-  // package protected for testing
-  static AppAdmin createAppAdmin(final DeployOptions options)
-      throws IOException {
-    AppAdminFactory appAdminFactory = new AppAdminFactory();
-
-    if (options.getJavaExecutableOSPath() != null) {
-      appAdminFactory.setJavaExecutable(new File(
-          options.getJavaExecutableOSPath()));
-    }
-
-    if (options.getJavaCompilerExecutableOSPath() != null) {
-      appAdminFactory.setJavaCompiler(new File(
-          options.getJavaCompilerExecutableOSPath()));
-    }
-
-    Application app = Application.readApplication(options.getDeployFolderOSPath());
-
-    PrintWriter errorWriter = new PrintWriter(options.getErrorStream(), true);
-    ConnectOptions appEngineConnectOptions = new ConnectOptions();
-    appEngineConnectOptions.setOauthToken(options.getOAuth2Token());
-
-    String appengineServer = System.getenv("APPENGINE_SERVER");
-    if (appengineServer != null) {
-      appEngineConnectOptions.setServer(appengineServer);
-    }
-
-    AppAdmin appAdmin = appAdminFactory.createAppAdmin(appEngineConnectOptions,
-        app, errorWriter);
-
-    return appAdmin;
-  }
+  private static final VersionComparator
+      VERSION_COMPARATOR = new VersionComparator();
 
   private static void getLibs(File dir, List<File> list) {
     for (File f : dir.listFiles()) {
@@ -324,11 +298,45 @@ public class AppEngineBridgeImpl implements AppEngineBridge {
     }
   }
 
+  // package protected for testing
+  static AppAdmin createAppAdmin(final DeployOptions options)
+      throws IOException {
+    AppAdminFactory appAdminFactory = new AppAdminFactory();
+
+    if (options.getJavaExecutableOSPath() != null) {
+      appAdminFactory.setJavaExecutable(
+          new File(options.getJavaExecutableOSPath()));
+    }
+
+    if (options.getJavaCompilerExecutableOSPath() != null) {
+      appAdminFactory.setJavaCompiler(
+          new File(options.getJavaCompilerExecutableOSPath()));
+    }
+
+    Application app = Application.readApplication(
+        options.getDeployFolderOSPath());
+
+    PrintWriter errorWriter = new PrintWriter(options.getErrorStream(), true);
+    ConnectOptions appEngineConnectOptions = new ConnectOptions();
+    appEngineConnectOptions.setOauthToken(options.getOAuth2Token());
+
+    String appengineServer = System.getenv("APPENGINE_SERVER");
+    if (appengineServer != null) {
+      appEngineConnectOptions.setServer(appengineServer);
+    }
+    appAdminFactory.setJarSplittingEnabled(true);
+
+    AppAdmin appAdmin = appAdminFactory.createAppAdmin(
+        appEngineConnectOptions, app, errorWriter);
+
+    return appAdmin;
+  }
+
   public AppEngineBridgeImpl() throws CoreException {
     if (!hasSdkInfo() || !isCompatibleVersion()) {
-      throw new CoreException(StatusUtilities.newErrorStatus(
-          ("App Engine SDK version must be greater than "
-              + MIN_SUPPORTED_VERSION + " in order to work with this plugin."),
+      throw new CoreException(StatusUtilities.newErrorStatus((
+          "App Engine SDK version must be greater than " + MIN_SUPPORTED_VERSION
+          + " in order to work with this plugin."),
           AppEngineCorePlugin.PLUGIN_ID));
     }
   }
@@ -346,8 +354,8 @@ public class AppEngineBridgeImpl implements AppEngineBridge {
      */
     UpdateCheck updateCheck = new UpdateCheck(SdkInfo.getDefaultServer());
     if (updateCheck.allowedToCheckForUpdates()) {
-      updateCheck.maybePrintNagScreen(new PrintStream(
-          options.getOutputStream(), true));
+      updateCheck.maybePrintNagScreen(
+          new PrintStream(options.getOutputStream(), true));
     }
 
     AppAdmin appAdmin = null;
@@ -365,16 +373,14 @@ public class AppEngineBridgeImpl implements AppEngineBridge {
        * this project is old and there is no backends.xml file.
        */
 
-      if (e.getCause() instanceof SAXParseException) {
+if (e.getCause() instanceof SAXParseException) {
         String msg = e.getCause().getMessage();
 
         // have to check what the message says to distinguish a file-not-found
         // problem from some other xml problem.
         if (msg.contains("Failed to read schema document")
             && msg.contains("backends.xsd")) {
-          return new Status(
-              IStatus.ERROR,
-              AppEngineCorePlugin.PLUGIN_ID,
+          return new Status(IStatus.ERROR, AppEngineCorePlugin.PLUGIN_ID,
               "Deploying a project with backends requires App Engine SDK 1.5.0 or greater.",
               e);
         } else {
@@ -389,14 +395,15 @@ public class AppEngineBridgeImpl implements AppEngineBridge {
 
     DeployUpdateListener deployUpdateListener = new DeployUpdateListener(
         monitor, deploymentSet,
-        new PrintWriter(options.getOutputStream(), true), new PrintWriter(
-            options.getErrorStream(), true));
+        new PrintWriter(options.getOutputStream(), true),
+        new PrintWriter(options.getErrorStream(), true));
 
     try {
 
       if (deploymentSet.getDeployFrontend()) {
         deployUpdateListener.setDeploymentUnitName("frontend");
-        deployUpdateListener.println("\n------------ Deploying frontend ------------");
+        deployUpdateListener.println(
+            "\n------------ Deploying frontend ------------");
         appAdmin.update(deployUpdateListener);
       }
 
@@ -478,7 +485,7 @@ public class AppEngineBridgeImpl implements AppEngineBridge {
   private boolean isCompatibleVersion() {
     Version sdkVersion = SdkInfo.getLocalVersion();
 
-    return VERSION_COMPARATOR.compare(sdkVersion.getRelease(),
-        MIN_SUPPORTED_VERSION) >= 0;
+    return VERSION_COMPARATOR.compare(
+        sdkVersion.getRelease(), MIN_SUPPORTED_VERSION) >= 0;
   }
 }

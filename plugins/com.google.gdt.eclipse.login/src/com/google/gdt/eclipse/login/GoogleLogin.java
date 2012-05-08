@@ -1,16 +1,16 @@
 /*******************************************************************************
  * Copyright 2011 Google Inc. All Rights Reserved.
- *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
+ * 
+ *  All rights reserved. This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License v1.0 which
+ * accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *  Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *******************************************************************************/
 package com.google.gdt.eclipse.login;
 
@@ -18,6 +18,7 @@ import com.google.api.client.auth.oauth2.draft10.AccessTokenResponse;
 import com.google.api.client.auth.oauth2.draft10.InstalledApp;
 import com.google.api.client.googleapis.auth.oauth2.draft10.GoogleAccessProtectedResource;
 import com.google.api.client.googleapis.auth.oauth2.draft10.GoogleAccessTokenRequest.GoogleAuthorizationCodeGrant;
+import com.google.api.client.googleapis.auth.oauth2.draft10.GoogleAccessTokenRequest.GoogleRefreshTokenGrant;
 import com.google.api.client.googleapis.auth.oauth2.draft10.GoogleAuthorizationRequestUrl;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpRequest;
@@ -53,7 +54,12 @@ import org.eclipse.ui.dialogs.PreferencesUtil;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+<<<<<<< .mine
+import java.util.GregorianCalendar;
 import java.util.List;
+=======
+import java.util.List;
+>>>>>>> .r4
 import java.util.Map;
 import java.util.Scanner;
 
@@ -70,20 +76,37 @@ public class GoogleLogin {
       super(reason);
     }
   }
+<<<<<<< .mine
+=======
 
   private static final String EXTERNAL_BROWSER_MSG = "An embedded browser could not be created for signing in. "
       + "An external web browser has been launched instead. Please sign in using this browser, "
       + "and enter the verification code here";
+>>>>>>> .r4
 
-  private static final String GET_EMAIL_URL = "https://www.googleapis.com/userinfo/email";
+  private static final String
+      EXTERNAL_BROWSER_MSG =
+          "An embedded browser could not be created for signing in. "
+          + "An external web browser has been launched instead. Please sign in using this browser, "
+          + "and enter the verification code here";
 
+<<<<<<< .mine
+  private static final String
+      GET_EMAIL_URL = "https://www.googleapis.com/userinfo/email";
+
+  private static final String
+      LOGIN_NOTIFICATION_EXTENSION_POINT = "loginListener";
+
+=======
   private static final String LOGIN_NOTIFICATION_EXTENSION_POINT = "loginListener";
 
+>>>>>>> .r4
   private static GoogleLogin instance;
 
   private static final JsonFactory jsonFactory = new JacksonFactory();
 
-  private static final String OAUTH2_NATIVE_CALLBACK_URL = InstalledApp.OOB_REDIRECT_URI;
+  private static final String
+      OAUTH2_NATIVE_CALLBACK_URL = InstalledApp.OOB_REDIRECT_URI;
   private static final HttpTransport transport = new NetHttpTransport();
 
   static {
@@ -110,21 +133,31 @@ public class GoogleLogin {
   }
 
   private static void showNoBrowsersMessageDialog() {
+<<<<<<< .mine
+    MessageDialog noBrowsersMd = new MessageDialog(Display.getDefault()
+      .getActiveShell(),
+        "No browsers found",
+        null,
+        null,
+        MessageDialog.ERROR,
+        new String[] {"Ok"},
+        0) {
+=======
     MessageDialog noBrowsersMd = new MessageDialog(
         Display.getDefault().getActiveShell(), "No browsers found", null, null,
         MessageDialog.ERROR, new String[] {"Ok"}, 0) {
+>>>>>>> .r4
 
-      @Override
+        @Override
       protected Control createMessageArea(Composite parent) {
         super.createMessageArea(parent);
 
         Link link = new Link(parent, SWT.WRAP);
         link.setText("An embedded browser could not be created for signing in."
-            + "\nAn external browser is needed to sign in, however, none are defined in Eclipse."
-            + "\nPlease add a browser in <a href=\"#\">Window -> Preferences -> General -> Web Browser</a> and sign in again.");
+            + "\nAn external browser is needed to sign in, however, none are defined in Eclipse." + "\nPlease add a browser in <a href=\"#\">Window -> Preferences -> General -> Web Browser</a> and sign in again.");
 
         link.addSelectionListener(new SelectionAdapter() {
-          @Override
+            @Override
           public void widgetSelected(SelectionEvent e) {
             PreferenceDialog dialog = PreferencesUtil.createPreferenceDialogOn(
                 Display.getDefault().getActiveShell(),
@@ -145,6 +178,8 @@ public class GoogleLogin {
   private GoogleAccessProtectedResource access;
 
   private String accessToken;
+
+  private long accessTokenExpiryTime;
 
   private String cachedOAuthScopes;
 
@@ -183,9 +218,9 @@ public class GoogleLogin {
    * signed in, this method will block and pop up the login dialog to the user.
    * If the user cancels signing in, this method will return null.
    *
-   * If the access token that was used to sign this transport was revoked or has
-   * expired, then execute() invoked on Request objects constructed from this
-   * transport will throw an exception, for example,
+   *  If the access token that was used to sign this transport was revoked or
+   * has expired, then execute() invoked on Request objects constructed from
+   * this transport will throw an exception, for example,
    * "com.google.api.client.http.HttpResponseException: 401 Unauthorized"
    *
    * @param message The message to display in the login dialog if the user needs
@@ -198,7 +233,35 @@ public class GoogleLogin {
     }
     return transport.createRequestFactory(access);
   }
+<<<<<<< .mine
 
+  /**
+   * Makes a request to get an OAuth2 access token from the OAuth2 refresh token
+   * if it is expired.
+   * 
+   * @return an OAuth2 token, or null if there was an error or if the user
+   *         wasn't signed in and canceled signing in.
+   * @throws IOException if something goes wrong while fetching the token.
+   * 
+   */
+  public String fetchAccessToken() throws IOException {
+    if (!checkLoggedIn(null)) {
+      return null;
+    }
+    if (accessTokenExpiryTime != 0) {
+      long currentTime = new GregorianCalendar().getTimeInMillis() / 1000;
+      if (currentTime >= accessTokenExpiryTime) {
+        fetchOAuth2Token();
+      }
+    } else {
+      fetchOAuth2Token();
+    }
+    return accessToken;
+  }
+
+=======
+
+>>>>>>> .r4
   public String fetchOAuth2ClientId() {
     return clientId;
   }
@@ -215,8 +278,8 @@ public class GoogleLogin {
   }
 
   /**
-   * Makes a request to get an OAuth2 access token from the OAuth2 refresh token.
-   * This token is short lived (1 hour).
+   * Makes a request to get an OAuth2 access token from the OAuth2 refresh
+   * token. This token is short lived.
    *
    * @return an OAuth2 token, or null if there was an error or if the user
    *         wasn't signed in and canceled signing in.
@@ -229,13 +292,19 @@ public class GoogleLogin {
     }
 
     try {
-      access.refreshToken();
+      GoogleRefreshTokenGrant request = new GoogleRefreshTokenGrant(
+          transport, jsonFactory, clientId, clientSecret, refreshToken);
+      AccessTokenResponse authResponse = request.execute();
+      accessToken = authResponse.accessToken;
+      access.setAccessToken(accessToken);
+      accessTokenExpiryTime = new GregorianCalendar().getTimeInMillis() / 1000
+          + authResponse.expiresIn.longValue();
     } catch (IOException e) {
-      GoogleLoginPlugin.logError(
-          "Could not obtain an Oauth2 access token.", e);
+      GoogleLoginPlugin.logError("Could not obtain an Oauth2 access token.", e);
       throw e;
     }
-    return access.getAccessToken();
+    saveCredentials();
+    return accessToken;
   }
 
   /**
@@ -247,10 +316,9 @@ public class GoogleLogin {
   }
 
   /**
-   * Returns true if the plugin was able to connect to the internet to try to
-   * , true if there were no
-   * stored credentials, and false if there were stored credentials, but it
-   * could not connect to verify.
+   * Returns true if the plugin was able to connect to the internet to try to ,
+   * true if there were no stored credentials, and false if there were stored
+   * credentials, but it could not connect to verify.
    */
   public boolean isConnected() {
     return connected;
@@ -277,9 +345,9 @@ public class GoogleLogin {
    * @param message if not null, then this message is displayed above the
    *          embedded browser widget. This is for when the user is presented
    *          the login dialog from doing something other than logging in, such
-   *          as accessing Google API services. It should say something
-   *          like
-   *          "Importing a project from Google Project Hosting requires signing in."
+   *          as accessing Google API services. It should say something like
+   *          "Importing a project from Google Project Hosting requires signing
+   *          in."
    *
    * @return true if the user signed in or is already signed in, false otherwise
    */
@@ -289,13 +357,12 @@ public class GoogleLogin {
       return true;
     }
 
-    String authorizeUrl = new GoogleAuthorizationRequestUrl(clientId,
-        OAUTH2_NATIVE_CALLBACK_URL, getOAuthScopes()).build();
+    String authorizeUrl = new GoogleAuthorizationRequestUrl(
+        clientId, OAUTH2_NATIVE_CALLBACK_URL, getOAuthScopes()).build();
 
     connected = true;
     final LoginBrowser loginBrowser = new LoginBrowser(
-        Display.getDefault().getActiveShell(), authorizeUrl,
-        message);
+        Display.getDefault().getActiveShell(), authorizeUrl, message);
 
     int rc = LoginBrowser.BROWSER_ERROR;
 
@@ -324,7 +391,10 @@ public class GoogleLogin {
     }
 
     GoogleAuthorizationCodeGrant authRequest = new GoogleAuthorizationCodeGrant(transport,
-        jsonFactory, clientId, clientSecret, verificationCode,
+        jsonFactory,
+        clientId,
+        clientSecret,
+        verificationCode,
         OAUTH2_NATIVE_CALLBACK_URL);
     authRequest.useBasicAuthorization = false;
     AccessTokenResponse authResponse;
@@ -332,9 +402,8 @@ public class GoogleLogin {
       authResponse = authRequest.execute();
     } catch (IOException e) {
       MessageDialog.openError(Display.getDefault().getActiveShell(),
-          "Error while signing in",
-          "An error occured while trying to sign in: " + e.getMessage()
-              + ". See the error log for more details.");
+          "Error while signing in", "An error occured while trying to sign in: "
+              + e.getMessage() + ". See the error log for more details.");
       GoogleLoginPlugin.logError(
           "Could not sign in. Make sure that you entered the correct verification code.",
           e);
@@ -342,8 +411,14 @@ public class GoogleLogin {
     }
     refreshToken = authResponse.refreshToken;
     accessToken = authResponse.accessToken;
-    access = new GoogleAccessProtectedResource(
-        accessToken, transport, jsonFactory, clientId, clientSecret, refreshToken);
+    access = new GoogleAccessProtectedResource(accessToken,
+        transport,
+        jsonFactory,
+        clientId,
+        clientSecret,
+        refreshToken);
+    accessTokenExpiryTime = new GregorianCalendar().getTimeInMillis() / 1000
+        + authResponse.expiresIn.longValue();
     isLoggedIn = true;
     email = queryEmail();
     saveCredentials();
@@ -385,39 +460,6 @@ public class GoogleLogin {
     this.trim = trim;
   }
 
-  protected void loadLogin() {
-
-    Credentials prefs = GoogleLoginPrefs.loadCredentials();
-
-    // the stored email can be null in the case where the external browser
-    // was launched, because we can't extract the email from the external
-    // browser
-    if (prefs.refreshToken == null || prefs.storedScopes == null) {
-      GoogleLoginPrefs.clearStoredCredentials();
-      return;
-    }
-
-    accessToken = prefs.accessToken;
-    refreshToken = prefs.refreshToken;
-    this.email = prefs.storedEmail;
-
-    isLoggedIn = true;
-
-    if (!getOAuthScopes().equals(prefs.storedScopes)) {
-      GoogleLoginPlugin.logWarning("OAuth scope set for stored credentials no longer valid, logging out.");
-      logOut(false);
-    }
-
-    access = new GoogleAccessProtectedResource(
-        accessToken, transport, jsonFactory, clientId, clientSecret, refreshToken);
-  }
-
-  protected void stop() {
-    if (GoogleLoginPrefs.getLogoutOnExitPref()) {
-      logOut(false);
-    }
-  }
-
   private boolean checkLoggedIn(String msg) {
     if (!isLoggedIn) {
       boolean rc = logIn(msg);
@@ -439,7 +481,8 @@ public class GoogleLogin {
   }
 
   private void initializeOauthClientInfo() {
-    ExtensionQuery<IClientProvider> extensionQuery = new ExtensionQuery<IClientProvider>(
+    ExtensionQuery<IClientProvider> extensionQuery = new ExtensionQuery<
+        IClientProvider>(
         GoogleLoginPlugin.PLUGIN_ID, "oauthClientProvider", "class");
     for (ExtensionQuery.Data<IClientProvider> data : extensionQuery.getData()) {
       String id = data.getExtensionPointData().getId();
@@ -461,9 +504,8 @@ public class GoogleLogin {
 
     boolean logOut = true;
     if (showPrompt) {
-      logOut = MessageDialog.openQuestion(
-          Display.getDefault().getActiveShell(), "Sign out?",
-          "Are you sure you want to sign out?");
+      logOut = MessageDialog.openQuestion(Display.getDefault().getActiveShell(),
+          "Sign out?", "Are you sure you want to sign out?");
     }
 
     if (logOut) {
@@ -477,6 +519,21 @@ public class GoogleLogin {
     }
     return false;
   }
+<<<<<<< .mine
+
+  private void notifyLoginStatusChange(boolean login) {
+    ExtensionQuery<LoginListener> extensionQuery = new ExtensionQuery<
+        LoginListener>(GoogleLoginPlugin.PLUGIN_ID,
+        LOGIN_NOTIFICATION_EXTENSION_POINT, "class");
+
+    List<ExtensionQuery.Data<LoginListener>> loginListenerList = extensionQuery
+      .getData();
+    for (ExtensionQuery.Data<LoginListener> loginListener : loginListenerList) {
+      loginListener.getExtensionPointData().statusChanged(login);
+    }
+  }
+
+=======
 
   private void notifyLoginStatusChange(boolean login) {
     ExtensionQuery<LoginListener> extensionQuery =
@@ -489,6 +546,7 @@ public class GoogleLogin {
     }
   }
 
+>>>>>>> .r4
   private void notifyTrim() {
     if (trim != null) {
       Display.getDefault().asyncExec(new Runnable() {
@@ -542,7 +600,8 @@ public class GoogleLogin {
 
     HttpResponse resp = null;
     try {
-      HttpRequest get = createRequestFactory().buildGetRequest(new GenericUrl(url));
+      HttpRequest get = createRequestFactory().buildGetRequest(
+          new GenericUrl(url));
       resp = get.execute();
       Scanner scan = new Scanner(resp.getContent());
       String respStr = "";
@@ -571,8 +630,48 @@ public class GoogleLogin {
     if (!isLoggedIn) {
       GoogleLoginPrefs.clearStoredCredentials();
     } else {
-      Credentials creds = new Credentials(accessToken, refreshToken, email, getOAuthScopes());
+      Credentials creds = new Credentials(accessToken, refreshToken, email,
+          getOAuthScopes(), accessTokenExpiryTime);
       GoogleLoginPrefs.saveCredentials(creds);
+    }
+  }
+
+  protected void loadLogin() {
+
+    Credentials prefs = GoogleLoginPrefs.loadCredentials();
+
+    // the stored email can be null in the case where the external browser
+    // was launched, because we can't extract the email from the external
+    // browser
+    if (prefs.refreshToken == null || prefs.storedScopes == null) {
+      GoogleLoginPrefs.clearStoredCredentials();
+      return;
+    }
+
+    accessToken = prefs.accessToken;
+    refreshToken = prefs.refreshToken;
+    accessTokenExpiryTime = prefs.accessTokenExpiryTime;
+    this.email = prefs.storedEmail;
+
+    isLoggedIn = true;
+
+    if (!getOAuthScopes().equals(prefs.storedScopes)) {
+      GoogleLoginPlugin.logWarning(
+          "OAuth scope set for stored credentials no longer valid, logging out.");
+      logOut(false);
+    }
+
+    access = new GoogleAccessProtectedResource(accessToken,
+        transport,
+        jsonFactory,
+        clientId,
+        clientSecret,
+        refreshToken);
+  }
+
+  protected void stop() {
+    if (GoogleLoginPrefs.getLogoutOnExitPref()) {
+      logOut(false);
     }
   }
 }

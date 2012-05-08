@@ -141,6 +141,20 @@ public class ApiDirectoryListing implements Serializable {
     return listing;
   }
 
+  public ApiDirectoryListing mergeListingsById(
+      ApiDirectoryListing otherListing) {
+    ApiDirectoryListing listing = new ApiDirectoryListing();
+    Map<String, ApiDirectoryItem> itemMap = new HashMap<String, ApiDirectoryItem>();
+    for (ApiDirectoryItem item : otherListing.itemsByIdentifier.values()) {
+      itemMap.put(item.getIdentifier(), item);
+    }
+    for (ApiDirectoryItem item : itemsByIdentifier.values()) {
+      itemMap.put(item.getIdentifier(), item);
+    }
+    listing.setItems(itemMap.values());
+    return listing;
+  }
+
   public void setItems(Collection<ApiDirectoryItem> items) {
     this.apiDirectoryItems = new ArrayList<ApiDirectoryItem>();
     this.apiDirectoryItems.addAll(sortItems(items));

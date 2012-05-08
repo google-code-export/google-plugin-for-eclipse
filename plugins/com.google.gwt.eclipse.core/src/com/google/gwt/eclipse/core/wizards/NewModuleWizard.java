@@ -47,7 +47,7 @@ import java.util.List;
 public class NewModuleWizard extends AbstractNewFileWizard {
 
   private static final String NO_VERSION_FOUND_DTD = "<!-- Could not determine the version of your GWT SDK; using the module DTD from GWT 1.6.4. You may want to change this. -->\n"
-      + "<!DOCTYPE module PUBLIC \"-//Google Inc.//DTD Google Web Toolkit 1.6.4//EN\" \"http://google-web-toolkit.googlecode.com/svn/tags/1.6.4/distro-source/core/src/gwt-module.dtd\">";
+      + "<!DOCTYPE module PUBLIC \"-//Google Inc.//DTD Google Web Toolkit//EN\" \"http://google-web-toolkit.googlecode.com/svn/trunk/distro-source/core/src/gwt-module.dtd\">";
 
   private NewModuleWizardPage newModuleWizardPage;
 

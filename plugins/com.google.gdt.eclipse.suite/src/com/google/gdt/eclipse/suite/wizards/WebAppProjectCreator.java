@@ -55,6 +55,7 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.resources.WorkspaceJob;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -72,6 +73,9 @@ import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.internal.ui.wizards.buildpaths.BuildPathsBlock;
 import org.eclipse.jdt.launching.JavaRuntime;
 import org.eclipse.jdt.ui.PreferenceConstants;
+import org.eclipse.wst.common.project.facet.core.IFacetedProject;
+import org.eclipse.wst.common.project.facet.core.IProjectFacet;
+import org.eclipse.wst.common.project.facet.core.ProjectFacetsManager;
 import org.osgi.service.prefs.BackingStoreException;
 
 import java.io.ByteArrayInputStream;
@@ -243,6 +247,8 @@ public class WebAppProjectCreator implements IWebAppProjectCreator {
   
   private boolean isUseGaeSdkFromDefault;
 
+  private static final String FACET_JST_JAVA = "jst.java";
+
   protected WebAppProjectCreator() {
     // Always a java project
     natureIds.add(JavaCore.NATURE_ID);
@@ -412,6 +418,10 @@ public class WebAppProjectCreator implements IWebAppProjectCreator {
     }
 
     createLaunchConfig(project);
+
+    // Created a faceted project. This is long-running and hence run in a
+    // separate job.
+    jobSetupFacets(project);
   }
 
   public List<IPath> getContainerPaths() {
@@ -472,6 +482,10 @@ public class WebAppProjectCreator implements IWebAppProjectCreator {
     this.isGenerateEmptyProject = generateEmptyProject;
   }
 
+  public void setIsGaeSdkFromEclipseDefault(boolean gaeSdkIsEclipseDefault) {
+    this.isUseGaeSdkFromDefault = gaeSdkIsEclipseDefault;
+  }
+
   public void setLocationURI(URI locationURI) {
     this.locationURI = locationURI;
   }
@@ -506,11 +520,15 @@ public class WebAppProjectCreator implements IWebAppProjectCreator {
           templateSources.length);
     }
   }
+<<<<<<< .mine
+ 
+=======
  
   public void setIsGaeSdkFromEclipseDefault(boolean gaeSdkIsEclipseDefault) {
     this.isUseGaeSdkFromDefault = gaeSdkIsEclipseDefault;
   }
 
+>>>>>>> .r4
   protected void createFiles(IProject project, IProgressMonitor monitor)
       throws CoreException, UnsupportedEncodingException {
     for (FileInfo fileInfo : fileInfos) {
@@ -792,13 +810,13 @@ public class WebAppProjectCreator implements IWebAppProjectCreator {
               + runtime.getName() + " " + e);
     }
   }
-  
+
   private boolean generateAppsMarketplaceSampleApp() {
     boolean useGwt = natureIds.contains(GWTNature.NATURE_ID);
     boolean useGae = natureIds.contains(GaeNature.NATURE_ID);
     return !isGenerateEmptyProject && useGae && !useGwt;
   }
-
+  
   private Sdk getSdk(String containerId, SdkManager<? extends Sdk> sdkManager) {
     Sdk sdk = null;
     IPath gaeContainerPath = findContainerPath(containerId);
@@ -807,6 +825,33 @@ public class WebAppProjectCreator implements IWebAppProjectCreator {
     }
 
     return sdk;
+  }
+
+  private void jobSetupFacets(final IProject project) {
+    // Facet setup is done in a workspace job since this can be long running,
+    // hence shouldn't be from the UI thread.
+    WorkspaceJob setupFacetsJob = new WorkspaceJob("Setting up facets") {
+        @Override
+      public IStatus runInWorkspace(IProgressMonitor monitor) {
+        try {
+          // Create faceted project
+          IFacetedProject facetedProject = ProjectFacetsManager.create(
+              project, true, monitor);
+          // Add Java facet by default
+          IProjectFacet javaFacet = ProjectFacetsManager.getProjectFacet(
+              FACET_JST_JAVA);
+          facetedProject.installProjectFacet(
+              javaFacet.getDefaultVersion(), null, monitor);
+          return Status.OK_STATUS;
+        } catch (CoreException e) {
+          // Log and continue
+          GdtPlugin.getLogger().logError(e);
+          return new Status(
+              IStatus.ERROR, GdtPlugin.PLUGIN_ID, e.toString(), e);
+        }
+      }
+    };
+    setupFacetsJob.schedule();
   }
 
   private void setGaeDefaults(IJavaProject javaProject) throws BackingStoreException {

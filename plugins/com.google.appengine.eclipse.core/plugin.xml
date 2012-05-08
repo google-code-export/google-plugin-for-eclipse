@@ -5,6 +5,7 @@
   <extension-point id="com.google.appengine.eclipse.core.enhancerJobCpFinder" name="enhancerJobCpFinder" schema="schema/com.google.appengine.eclipse.core.enhancerJobCpFinder.exsd"/>
   <extension-point id="com.google.appengine.eclipse.core.gaeSdkSelectionEnablementFinder" name="gaeSdkSelectionEnablementFinder" schema="schema/com.google.appengine.eclipse.core.gaeSdkSelectionEnablementFinder.exsd"/>
   <extension-point id="com.google.appengine.eclipse.core.gaeSqlToolsExtension" name="gaeSqlToolsExtension" schema="schema/com.google.appengine.eclipse.core.gaeSqlToolsExtension.exsd"/>
+  <extension-point id="com.google.appengine.eclipse.core.appengineWebXml" name="appengineWebXml" schema="schema/com.google.appengine.eclipse.core.appengineWebXml.exsd"/>
   <extension
          point="org.eclipse.jdt.core.compilationParticipant">
       <compilationParticipant

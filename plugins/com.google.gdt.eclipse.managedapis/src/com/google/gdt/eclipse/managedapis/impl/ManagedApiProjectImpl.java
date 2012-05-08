@@ -1,21 +1,22 @@
 /*******************************************************************************
  * Copyright 2011 Google Inc. All Rights Reserved.
- *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
+ * 
+ *  All rights reserved. This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License v1.0 which
+ * accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *  Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *******************************************************************************/
 package com.google.gdt.eclipse.managedapis.impl;
 
 import com.google.gdt.eclipse.core.JavaUtilities;
 import com.google.gdt.eclipse.core.WebAppUtilities;
+import com.google.gdt.eclipse.core.jobs.DownloadRunnable;
 import com.google.gdt.eclipse.managedapis.EclipseProject;
 import com.google.gdt.eclipse.managedapis.ManagedApi;
 import com.google.gdt.eclipse.managedapis.ManagedApiConstants;
@@ -23,14 +24,18 @@ import com.google.gdt.eclipse.managedapis.ManagedApiLogger;
 import com.google.gdt.eclipse.managedapis.ManagedApiPlugin;
 import com.google.gdt.eclipse.managedapis.ManagedApiProject;
 import com.google.gdt.eclipse.managedapis.ManagedApiProjectObserver;
+import com.google.gdt.eclipse.managedapis.directory.ApiDirectory;
 import com.google.gdt.eclipse.managedapis.extensiontypes.IManagedApiProjectInitializationCallback;
 import com.google.gdt.eclipse.managedapis.platform.ManagedApiContainer;
 import com.google.gdt.eclipse.managedapis.platform.ManagedApiProjectProperties;
 import com.google.gdt.eclipse.managedapis.platform.UpdateManagedApisOperation;
 import com.google.gdt.googleapi.core.ApiDirectoryItem;
 import com.google.gdt.googleapi.core.ApiDirectoryListing;
+import com.google.gson.Gson;
 
+import org.apache.tools.ant.util.FileUtils;
 import org.eclipse.core.commands.ExecutionException;
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
@@ -51,6 +56,11 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.operations.IWorkbenchOperationSupport;
 import org.osgi.service.prefs.BackingStoreException;
 
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,11 +72,41 @@ import java.util.Set;
 /**
  * Provides access to GPE-managed APIs installed in the specified project.
  * 
- * Note: The property copyToTargetDir has a special case. If the project has a
+ *  Note: The property copyToTargetDir has a special case. If the project has a
  * managed WAR directory, and the copyToTargetDir value is "*" (default), the
  * effective copy-to-dir is determined dynamically by querying the project.
  */
 public class ManagedApiProjectImpl implements ManagedApiProject {
+  /**
+   * Class used for JSON deserialization and getting revision and language
+   * version from descriptor.json.
+   */
+  public static class ApiRevision {
+    // Variable names as in JSON labels so gson can get their values from JSON
+    // file.
+    private String revision;
+    private String language_version;
+
+    public String getLanguage_version() {
+      return language_version;
+    }
+
+    public String getRevision() {
+      return revision;
+    }
+
+    public void setLanguage_version(String language_version) {
+      this.language_version = language_version;
+    }
+
+    public void setRevision(String revision) {
+      this.revision = revision;
+    }
+  }
+
+  public static final Gson GSON_CODEC = new Gson();
+  private static final String OPEN_BRACE = "{";
+  public static final String GDATA_FOLDER_NAME = "static";
 
   /**
    * Provide a simple way to produce a ManagedApiProject from a IJavaProject.
@@ -82,13 +122,15 @@ public class ManagedApiProjectImpl implements ManagedApiProject {
     ManagedApiProjectImpl managedApiProject = null;
     IProject iProject = project.getProject();
     if (iProject.isOpen()) {
-      managedApiProject = (ManagedApiProjectImpl) iProject.getSessionProperty(ManagedApiPlugin.MANAGED_API_SESSION_KEY_QNAME);
+      managedApiProject = (ManagedApiProjectImpl) iProject.getSessionProperty(
+          ManagedApiPlugin.MANAGED_API_SESSION_KEY_QNAME);
       synchronized (project) {
         if (managedApiProject == null
             || managedApiProject.getProject() != project.getProject()) {
           managedApiProject = new ManagedApiProjectImpl(project);
           project.getProject().setSessionProperty(
-              ManagedApiPlugin.MANAGED_API_SESSION_KEY_QNAME, managedApiProject);
+              ManagedApiPlugin.MANAGED_API_SESSION_KEY_QNAME,
+              managedApiProject);
           if (managedApiProject.hasManagedApis()) {
             managedApiProject.initializeProjectWithManagedApis();
           }
@@ -122,7 +164,9 @@ public class ManagedApiProjectImpl implements ManagedApiProject {
    */
   private ManagedApiChangeListener listener = null;
 
-  private final Set<ManagedApiProjectObserver> managedApiProjectObservers = Collections.synchronizedSet(new HashSet<ManagedApiProjectObserver>());
+  private final
+      Set<ManagedApiProjectObserver> managedApiProjectObservers = Collections
+        .synchronizedSet(new HashSet<ManagedApiProjectObserver>());
 
   private ManagedApiProjectImpl(IJavaProject project) {
     eProject = new EclipseJavaProject(project);
@@ -158,8 +202,11 @@ public class ManagedApiProjectImpl implements ManagedApiProject {
     if (rootFolder != null) {
       IFolder folder = rootFolder.getFolder(pathRelativeToManagedApiRoot);
       if (representsManagedApiCandidate(folder)) {
-        ManagedApi managedApi = ManagedApiImpl.createManagedApi(eProject,
-            folder);
+        ManagedApi managedApi = ManagedApiImpl.createManagedApi(
+            eProject, folder);
+        ApiDirectory apiDirectory = ManagedApiPlugin.getDefault()
+          .getApiDirectoryFactory().buildApiDirectory();
+        updateApi(apiDirectory.getApiDirectoryListing(), managedApi);
         return managedApi;
       }
     }
@@ -181,7 +228,8 @@ public class ManagedApiProjectImpl implements ManagedApiProject {
   }
 
   public IFolder getCopyToTargetDir() throws CoreException {
-    String copyToTargetDirPath = ManagedApiProjectProperties.getCopyToTargetDir(eProject.getProject());
+    String copyToTargetDirPath = ManagedApiProjectProperties.getCopyToTargetDir(
+        eProject.getProject());
     if (ManagedApiConstants.DEFAULT_COPY_TO_PATH.equals(copyToTargetDirPath)) {
       return getDefaultCopyToTargetDir();
     } else if (copyToTargetDirPath != null) {
@@ -209,7 +257,8 @@ public class ManagedApiProjectImpl implements ManagedApiProject {
     if (eProject == null) {
       return null;
     }
-    localPath = ManagedApiProjectProperties.getManagedApiRootFolderPath(eProject.getProject());
+    localPath = ManagedApiProjectProperties.getManagedApiRootFolderPath(
+        eProject.getProject());
     return eProject.getFolder(localPath);
   }
 
@@ -222,7 +271,8 @@ public class ManagedApiProjectImpl implements ManagedApiProject {
           IClasspathEntry[] rawClasspath = project.getRawClasspath();
           for (IClasspathEntry entry : rawClasspath) {
             if (entry.getEntryKind() == IClasspathEntry.CPE_CONTAINER) {
-              if (ManagedApiPlugin.API_CONTAINER_PATH.isPrefixOf(entry.getPath())) {
+              if (ManagedApiPlugin.API_CONTAINER_PATH.isPrefixOf(
+                  entry.getPath())) {
                 IClasspathContainer container = JavaCore.getClasspathContainer(
                     entry.getPath(), project);
                 if (container instanceof ManagedApiContainer) {
@@ -264,20 +314,43 @@ public class ManagedApiProjectImpl implements ManagedApiProject {
     return getManagedApis().length > 0;
   }
 
+  /**
+   * When a project includes managed APIs, register listeners to handle
+   * ManagedApi events. When a project stops having Managed APIs, this type
+   * clears all listeners with a call to clearManagedApiProjectObservers().
+   */
+  public void initializeProjectWithManagedApis() {
+    synchronized (initialized) {
+      if (!initialized) {
+        // listen for api changes to manage contents of the CopyToDirectory
+        registerManagedApiProjectObserver(
+            new ManagedApiProjectCopyToProvider(this));
+        IManagedApiProjectInitializationCallback[] initializationCallbacks = ManagedApiPlugin.findProjectInitializationCallbacks();
+        for (IManagedApiProjectInitializationCallback initializationCallback :
+            initializationCallbacks) {
+          initializationCallback.onInitialization(this);
+        }
+        startListeningForManagedApiChanges();
+        initialized = true;
+      }
+    }
+  }
+
   public void install(IFolder[] uninstalledManagedApiFolders,
-      IProgressMonitor monitor, String operationText) throws CoreException,
-      ExecutionException {
+      IProgressMonitor monitor, String operationText)
+      throws CoreException, ExecutionException {
     int newApiCount = uninstalledManagedApiFolders.length;
-    IWorkbenchOperationSupport operationSupport = PlatformUI.getWorkbench().getOperationSupport();
-    List<ManagedApi> managedApisList = JavaUtilities.copyToArrayListWithExtraCapacity(
-        getManagedApis(), newApiCount);
+    IWorkbenchOperationSupport operationSupport = PlatformUI.getWorkbench()
+      .getOperationSupport();
+    List<ManagedApi> managedApisList = JavaUtilities
+      .copyToArrayListWithExtraCapacity(getManagedApis(), newApiCount);
 
     for (IFolder apiFolder : uninstalledManagedApiFolders) {
       // create and add to working list
       ManagedApi managedApi = createManagedApi(apiFolder.getName());
       // check to see if list contains older version
-      ManagedApi apiToReplace = findApiMatchingName(managedApisList,
-          managedApi.getName());
+      ManagedApi apiToReplace = findApiMatchingName(
+          managedApisList, managedApi.getName());
       if (apiToReplace != null) {
         managedApisList.remove(apiToReplace);
       }
@@ -288,9 +361,10 @@ public class ManagedApiProjectImpl implements ManagedApiProject {
         operationText);
     updateManagedApisOp.addContext(operationSupport.getUndoContext());
     updateManagedApisOp.setManagedApiProject(this);
-    updateManagedApisOp.setAfterManagedApis(managedApisList.toArray(new ManagedApiImpl[managedApisList.size()]));
-    operationSupport.getOperationHistory().execute(updateManagedApisOp,
-        monitor, null);
+    updateManagedApisOp.setAfterManagedApis(
+        managedApisList.toArray(new ManagedApiImpl[managedApisList.size()]));
+    operationSupport.getOperationHistory()
+        .execute(updateManagedApisOp, monitor, null);
   }
 
   public boolean isPackageFragmentRootInManagedApi(
@@ -302,14 +376,17 @@ public class ManagedApiProjectImpl implements ManagedApiProject {
   }
 
   public boolean isUseDefaultCopyToTargetDir() throws CoreException {
-    String copyToTargetDirPath = ManagedApiProjectProperties.getCopyToTargetDir(eProject.getProject());
+    String copyToTargetDirPath = ManagedApiProjectProperties.getCopyToTargetDir(
+        eProject.getProject());
     return ManagedApiConstants.DEFAULT_COPY_TO_PATH.equals(copyToTargetDirPath);
   }
 
-  public void notifyCopyToDirectoryChanged(IFolder originalFolder,
-      IFolder newFolder) {
+  public void notifyCopyToDirectoryChanged(
+      IFolder originalFolder, IFolder newFolder) {
     if (!JavaUtilities.equalsWithNullCheck(originalFolder, newFolder)) {
-      ManagedApiProjectObserver[] observers = managedApiProjectObservers.toArray(new ManagedApiProjectObserver[managedApiProjectObservers.size()]);
+      ManagedApiProjectObserver[] observers = managedApiProjectObservers
+        .toArray(
+            new ManagedApiProjectObserver[managedApiProjectObservers.size()]);
       for (ManagedApiProjectObserver observer : observers) {
         observer.changeCopyToDirectory(originalFolder, newFolder);
       }
@@ -317,33 +394,46 @@ public class ManagedApiProjectImpl implements ManagedApiProject {
   }
 
   public void notifyManagedApisAdded(ManagedApi[] apis) {
-    ManagedApiProjectObserver[] observers = managedApiProjectObservers.toArray(new ManagedApiProjectObserver[managedApiProjectObservers.size()]);
+    ManagedApiProjectObserver[] observers = managedApiProjectObservers.toArray(
+        new ManagedApiProjectObserver[managedApiProjectObservers.size()]);
     for (ManagedApiProjectObserver observer : observers) {
       observer.addManagedApis(apis);
     }
   }
 
+  public void notifyManagedApisRefreshed(ManagedApi[] apis) {
+    ManagedApiProjectObserver[] observers = managedApiProjectObservers.toArray(
+        new ManagedApiProjectObserver[managedApiProjectObservers.size()]);
+    for (ManagedApiProjectObserver observer : observers) {
+      observer.refreshManagedApis(apis);
+    }
+  }
+
   public void notifyManagedApisRemoved(ManagedApi[] apis) {
-    ManagedApiProjectObserver[] observers = managedApiProjectObservers.toArray(new ManagedApiProjectObserver[managedApiProjectObservers.size()]);
+    ManagedApiProjectObserver[] observers = managedApiProjectObservers.toArray(
+        new ManagedApiProjectObserver[managedApiProjectObservers.size()]);
     for (ManagedApiProjectObserver observer : observers) {
       observer.removeManagedApis(apis);
     }
   }
 
-  public void notifyUninstalled(final ManagedApi[] apisRemoved,
-      final IProgressMonitor monitor) throws ExecutionException {
+  public void notifyUninstalled(
+      final ManagedApi[] apisRemoved, final IProgressMonitor monitor)
+      throws ExecutionException {
 
     int removedApiCount = apisRemoved.length;
-    IWorkbenchOperationSupport operationSupport = PlatformUI.getWorkbench().getOperationSupport();
-    List<ManagedApi> managedApisBeforeRemoval = JavaUtilities.copyToArrayListWithExtraCapacity(
-        getManagedApis(), removedApiCount);
+    IWorkbenchOperationSupport operationSupport = PlatformUI.getWorkbench()
+      .getOperationSupport();
+    List<ManagedApi> managedApisBeforeRemoval = JavaUtilities
+      .copyToArrayListWithExtraCapacity(getManagedApis(), removedApiCount);
     managedApisBeforeRemoval.addAll(Arrays.asList(apisRemoved));
 
     UpdateManagedApisOperation updateManagedApisOp = new UpdateManagedApisOperation(
         "Remove API");
     updateManagedApisOp.addContext(operationSupport.getUndoContext());
     updateManagedApisOp.setManagedApiProject(this);
-    updateManagedApisOp.setBeforeManagedApis(managedApisBeforeRemoval.toArray(new ManagedApi[managedApisBeforeRemoval.size()]));
+    updateManagedApisOp.setBeforeManagedApis(managedApisBeforeRemoval.toArray(
+        new ManagedApi[managedApisBeforeRemoval.size()]));
     updateManagedApisOp.setAfterManagedApis(getManagedApis());
     operationSupport.getOperationHistory().add(updateManagedApisOp);
 
@@ -367,11 +457,11 @@ public class ManagedApiProjectImpl implements ManagedApiProject {
 
   public void setCopyToTargetDir(IFolder copyToTarget) throws CoreException {
     try {
-      String copyClasspathEntriesTargetPath = (copyToTarget == null ? null
-          : toRelativePath(copyToTarget).toString());
+      String copyClasspathEntriesTargetPath = (copyToTarget == null
+          ? null : toRelativePath(copyToTarget).toString());
       IFolder originalFolder = getCopyToTargetDir();
-      ManagedApiProjectProperties.setCopyToTargetDirPath(eProject.getProject(),
-          copyClasspathEntriesTargetPath);
+      ManagedApiProjectProperties.setCopyToTargetDirPath(
+          eProject.getProject(), copyClasspathEntriesTargetPath);
       notifyCopyToDirectoryChanged(originalFolder, copyToTarget);
     } catch (BackingStoreException e) {
       throw new CoreException(new Status(IStatus.ERROR,
@@ -382,8 +472,8 @@ public class ManagedApiProjectImpl implements ManagedApiProject {
   public void setDefaultCopyToTargetDir() throws CoreException {
     try {
       IFolder originalFolder = getCopyToTargetDir();
-      ManagedApiProjectProperties.setCopyToTargetDirPath(eProject.getProject(),
-          ManagedApiConstants.DEFAULT_COPY_TO_PATH);
+      ManagedApiProjectProperties.setCopyToTargetDirPath(
+          eProject.getProject(), ManagedApiConstants.DEFAULT_COPY_TO_PATH);
       IFolder copyToTarget = getCopyToTargetDir();
       notifyCopyToDirectoryChanged(originalFolder, copyToTarget);
     } catch (BackingStoreException e) {
@@ -395,7 +485,8 @@ public class ManagedApiProjectImpl implements ManagedApiProject {
   public void setManagedApiRootFolder(IFolder managedApiRootFolder)
       throws CoreException {
     try {
-      String managedApiRootFolderPath = toRelativePath(managedApiRootFolder).toString();
+      String managedApiRootFolderPath = toRelativePath(managedApiRootFolder)
+          .toString();
       ManagedApiProjectProperties.setManagedApiRootFolderPath(
           eProject.getProject(), managedApiRootFolderPath);
     } catch (BackingStoreException e) {
@@ -413,22 +504,82 @@ public class ManagedApiProjectImpl implements ManagedApiProject {
    */
   public void updateApis(ApiDirectoryListing apiDirectoryListing) {
     for (ManagedApi api : getManagedApis()) {
-      ApiDirectoryItem[] matchingApis = apiDirectoryListing.getByName(api.getName());
-      for (ApiDirectoryItem matchingApi : matchingApis) {
-        if (matchingApi.isPreferred()
-            && !JavaUtilities.equalsWithNullCheck(api.getVersion(),
-                matchingApi.getVersion())) {
-          api.setUpdateAvailable();
+      updateApi(apiDirectoryListing, api);
+    }
+  }
+
+  private boolean checkRevisionChange(
+      ManagedApi api, ApiDirectoryListing apiDirectoryListing) {
+    try {
+      URL descriptorDownloadLink = null;
+      // Get Descriptor download link from corresponding directory item.
+      for (ApiDirectoryItem apiDirectoryItem : apiDirectoryListing.getByName(
+          api.getName())) {
+        if (apiDirectoryItem.getVersion().equals(api.getVersion())) {
+          if (apiDirectoryItem.getDownloadLink()
+              .toString().contains(GDATA_FOLDER_NAME)) {
+            return false;
+          }
+          descriptorDownloadLink = new URL(apiDirectoryItem.getDownloadLink()
+              + "&descriptor-only=1");
+          break;
         }
       }
+      if (descriptorDownloadLink == null) {
+        // If no corresponding directory item, no new revision possible.
+        return false;
+      }
+      File descriptorFile = File.createTempFile(
+          "eclipse-gpe-managed-apis-", ".txt");
+      descriptorFile.deleteOnExit();
+      new DownloadRunnable(descriptorDownloadLink, descriptorFile).run(
+          new NullProgressMonitor());
+      String descriptorContent = FileUtils.readFully(
+          new FileReader(descriptorFile));
+      if (descriptorContent.indexOf(OPEN_BRACE) == -1) {
+        // If descriptor doesn't have JSON, codegen doesn't have descriptor so
+        // quit.
+        return false;
+      }
+      descriptorContent = descriptorContent.substring(
+          descriptorContent.indexOf("{"));
+      IFile localDescriptorFile = ManagedApiImpl.scanManagedApiFiles(
+          eProject, api.getRootDirectory()).getDescriptor();
+      if (localDescriptorFile == null) {
+        // If no local descriptor, then set as Upgrade required to download
+        // again.
+        return true;
+      }
+      String localDescriptorContent = FileUtils.readFully(
+          new FileReader(localDescriptorFile.getLocation().toFile()));
+      ApiRevision localRevision = GSON_CODEC.fromJson(
+          localDescriptorContent, ApiRevision.class);
+      ApiRevision revision = GSON_CODEC.fromJson(
+          descriptorContent, ApiRevision.class);
+      if (revision.getRevision() != null
+          && !revision.getRevision().equals(localRevision.getRevision())) {
+        return true;
+      }
+      if (revision.getLanguage_version()
+          != null && !revision.getLanguage_version().equals(
+          localRevision.getLanguage_version())) {
+        return true;
+      }
+    } catch (MalformedURLException e) {
+      ManagedApiLogger.error(e);
+    } catch (IOException e) {
+      ManagedApiLogger.error(e);
+    } catch (CoreException e) {
+      ManagedApiLogger.error(e);
     }
+    return false;
   }
 
   private void deleteRootFolder() {
     final IFolder rootFolder = getManagedApiRootFolder();
     if (rootFolder != null && rootFolder.exists()) {
       Job deleteApiRootJob = new Job("Delete root directory for managed apis") {
-        @Override
+          @Override
         protected IStatus run(IProgressMonitor monitor) {
           try {
             if (rootFolder.exists()) {
@@ -448,49 +599,29 @@ public class ManagedApiProjectImpl implements ManagedApiProject {
     }
   }
 
-  /**
-   * When a project includes managed APIs, register listeners to handle
-   * ManagedApi events. When a project stops having Managed APIs, this type
-   * clears all listeners with a call to clearManagedApiProjectObservers().
-   */
-  private void initializeProjectWithManagedApis() {
-    synchronized (initialized) {
-      if (!initialized) {
-        // listen for api changes to manage contents of the CopyToDirectory
-        registerManagedApiProjectObserver(new ManagedApiProjectCopyToProvider(
-            this));
-        IManagedApiProjectInitializationCallback[] initializationCallbacks = ManagedApiPlugin.findProjectInitializationCallbacks();
-        for (IManagedApiProjectInitializationCallback initializationCallback : initializationCallbacks) {
-          initializationCallback.onInitialization(this);
-        }
-        startListeningForManagedApiChanges();
-        initialized = true;
-      }
-    }
-  }
-
   private void removeManagedApiClasspathEntries() {
     Job writeRawClasspathJob = new Job(
         "Remove managed api entries from classpath") {
-      @Override
+        @Override
       protected IStatus run(IProgressMonitor monitor) {
         IStatus returnStatus = Status.OK_STATUS;
         IClasspathEntry[] initialRawClasspath;
         try {
           initialRawClasspath = eProject.getJavaProject().getRawClasspath();
-          List<IClasspathEntry> rawClasspathList = new ArrayList<IClasspathEntry>(
-              initialRawClasspath.length);
+          List<IClasspathEntry> rawClasspathList = new ArrayList<
+              IClasspathEntry>(initialRawClasspath.length);
           for (IClasspathEntry entry : initialRawClasspath) {
             String basePath = entry.getPath().segment(0);
             if (!(basePath.equals(ManagedApiPlugin.API_CONTAINER_PATH_ID))) {
               rawClasspathList.add(entry);
             }
           }
-          IClasspathEntry[] newRawClasspath = rawClasspathList.toArray(new IClasspathEntry[rawClasspathList.size()]);
+          IClasspathEntry[] newRawClasspath = rawClasspathList.toArray(
+              new IClasspathEntry[rawClasspathList.size()]);
           eProject.setRawClasspath(newRawClasspath, new NullProgressMonitor());
         } catch (JavaModelException e) {
-          ManagedApiLogger.error(e,
-              "Caught JavaModelException trying to rewrite raw classpath");
+          ManagedApiLogger.error(
+              e, "Caught JavaModelException trying to rewrite raw classpath");
           returnStatus = new Status(IStatus.ERROR, ManagedApiPlugin.PLUGIN_ID,
               "Failure while rewriting raw classpath.");
         }
@@ -510,16 +641,16 @@ public class ManagedApiProjectImpl implements ManagedApiProject {
     synchronized (this) {
       if (listener == null) {
         listener = new ManagedApiChangeListener() {
-          @Override
+            @Override
           public void managedApiProjectClosed() {
           }
 
-          @Override
+            @Override
           public void managedApiProjectRemoved() {
             stopListeningForManagedApiChanges();
           }
 
-          @Override
+            @Override
           public void managedApiRemoved(ManagedApiImpl[] removedManagedApis) {
             try {
               notifyUninstalled(removedManagedApis, new NullProgressMonitor());
@@ -539,6 +670,28 @@ public class ManagedApiProjectImpl implements ManagedApiProject {
       if (listener != null) {
         JavaCore.removeElementChangedListener(listener);
         listener = null;
+      }
+    }
+  }
+
+  private void updateApi(
+      ApiDirectoryListing apiDirectoryListing, ManagedApi api) {
+    api.setRevisionUpdateAvailable(false);
+    api.unsetUpdateAvailable();
+    if (apiDirectoryListing == null) {
+      return;
+    }
+    if (checkRevisionChange(api, apiDirectoryListing)) {
+      api.setUpdateAvailable();
+      api.setRevisionUpdateAvailable(true);
+      return;
+    }
+    ApiDirectoryItem[] matchingApis = apiDirectoryListing.getByName(
+        api.getName());
+    for (ApiDirectoryItem matchingApi : matchingApis) {
+      if (matchingApi.isPreferred() && !JavaUtilities.equalsWithNullCheck(
+          api.getVersion(), matchingApi.getVersion())) {
+        api.setUpdateAvailable();
       }
     }
   }

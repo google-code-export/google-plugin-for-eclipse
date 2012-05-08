@@ -17,6 +17,7 @@
             menubarPath="com.google.gdt.eclipse.suite.popupMenu.project/actionsContent">
       </action>
     </objectContribution>
+    <!--
     <objectContribution
           adaptable="true"
           id="com.google.appengine.eclipse.managedapis.ui.GoogleApiSettings"
@@ -28,6 +29,7 @@
              menubarPath="com.google.gdt.eclipse.suite.popupMenu.project/settingsContent">
        </action>
     </objectContribution>
+    -->
   </extension>
   
    <extension
@@ -68,10 +70,10 @@
       </description> 
     </decorator> 
     <decorator 
-        id="com.google.gdt.eclipse.managedapis.ui.UpdateAvailableDecorator" 
+        id="com.google.gdt.eclipse.managedapis.ui.ManageApiInfoDecorator" 
         label="%ContainerUpdateDecoratorName" 
         state="true" 
-        class="com.google.gdt.eclipse.managedapis.ui.UpdateAvailableDecorator" 
+        class="com.google.gdt.eclipse.managedapis.ui.ManageApiInfoDecorator" 
         lightweight="true"
         adaptable="true"> 
       <description> 
@@ -141,6 +143,7 @@
      </menuContribution>
      -->
   </extension>
+  <!--
    <extension point="org.eclipse.ui.propertyPages">
       <page
             category="com.google.gdt.eclipse.core.properties.coreProjectPropertyPage"
@@ -158,4 +161,5 @@
          </enabledWhen>
       </page>
    </extension>
+   -->
 </plugin>

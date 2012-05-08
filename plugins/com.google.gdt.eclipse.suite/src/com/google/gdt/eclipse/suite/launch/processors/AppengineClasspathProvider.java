@@ -16,6 +16,8 @@ package com.google.gdt.eclipse.suite.launch.processors;
 
 import com.google.appengine.eclipse.core.nature.GaeNature;
 import com.google.appengine.eclipse.core.properties.GoogleCloudSqlProperties;
+import com.google.appengine.eclipse.core.sdk.AppEngineBridge;
+import com.google.appengine.eclipse.core.sdk.GaeSdk;
 import com.google.common.collect.Sets;
 import com.google.gwt.eclipse.core.launch.ModuleClasspathProvider;
 
@@ -65,11 +67,19 @@ public class AppengineClasspathProvider extends ModuleClasspathProvider {
     if (!useDefault) {
       return unresolvedClasspathEntries;
     }
+
+    if (!GaeNature.isGaeProject(project.getProject())) {
+      return unresolvedClasspathEntries;
+    }
+
     if (!GoogleCloudSqlProperties.getGoogleCloudSqlEnabled(project.getProject())) {
       return unresolvedClasspathEntries;
     }
 
-    IPath jdbcDriverPath = Path.fromOSString(GoogleCloudSqlProperties.getGoogleCloudSqlCopiedJdbcDriverPath(project.getProject()));
+    IPath jdbcDriverPath = Path.fromOSString(GaeSdk.findSdkFor(project).getInstallationPath()
+        + AppEngineBridge.APPENGINE_CLOUD_SQL_JAR_PATH_IN_SDK
+        + AppEngineBridge.APPENGINE_CLOUD_SQL_JAR);
+    
     if (!jdbcDriverPath.isAbsolute()) {
       return unresolvedClasspathEntries;
     }

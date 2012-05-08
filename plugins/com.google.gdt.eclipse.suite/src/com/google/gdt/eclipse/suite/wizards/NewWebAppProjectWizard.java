@@ -1,16 +1,16 @@
 /*******************************************************************************
  * Copyright 2011 Google Inc. All Rights Reserved.
- *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
+ * 
+ *  All rights reserved. This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License v1.0 which
+ * accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *  Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *******************************************************************************/
 package com.google.gdt.eclipse.suite.wizards;
 
@@ -46,8 +46,15 @@ import java.net.URI;
  * TODO: The progress monitors are not being used correctly.
  */
 @SuppressWarnings("restriction")
-public class NewWebAppProjectWizard extends NewElementWizard implements
-    INewWizard {
+public class NewWebAppProjectWizard extends NewElementWizard
+    implements INewWizard {
+
+  /**
+   * This method is called to force load this plugin in eclipse.
+   */
+  public static void forceLoadSuitePlugin() {
+
+  }
 
   private IPath gaeSdkContainerPath;
 
@@ -71,6 +78,8 @@ public class NewWebAppProjectWizard extends NewElementWizard implements
   
   private boolean gaeSdkIsEclipseDefault;
 
+  private boolean gaeSdkIsEclipseDefault;
+
   public NewWebAppProjectWizard() {
   }
 
@@ -90,8 +99,8 @@ public class NewWebAppProjectWizard extends NewElementWizard implements
     setHelpAvailable(false);
     setWindowTitle("New Web Application Project");
     setNeedsProgressMonitor(true);
-    setDefaultPageImageDescriptor(GdtPlugin.getDefault().getImageDescriptor(
-        GdtImages.GDT_NEW_PROJECT_LARGE));
+    setDefaultPageImageDescriptor(GdtPlugin.getDefault()
+        .getImageDescriptor(GdtImages.GDT_NEW_PROJECT_LARGE));
   }
 
   /**
@@ -108,8 +117,8 @@ public class NewWebAppProjectWizard extends NewElementWizard implements
     gwtSdkContainerPath = newProjectWizardPage.getGWTSdkContainerPath();
     packageName = newProjectWizardPage.getPackage();
     locationURI = newProjectWizardPage.getCreationLocationURI();
-    isAppsMarketplaceSupported = 
-      newProjectWizardPage.isAppsMarketplaceSupported();
+    isAppsMarketplaceSupported = newProjectWizardPage
+      .isAppsMarketplaceSupported();
     isGenerateEmptyProject = newProjectWizardPage.isGenerateEmptyProject();
 
     /**
@@ -159,23 +168,23 @@ public class NewWebAppProjectWizard extends NewElementWizard implements
       wapc.create(monitor);
 
     } catch (MalformedURLException e) {
-      throw new CoreException(new Status(IStatus.ERROR, GdtPlugin.PLUGIN_ID,
-          e.getMessage(), e));
+      throw new CoreException(new Status(
+          IStatus.ERROR, GdtPlugin.PLUGIN_ID, e.getMessage(), e));
     } catch (UnsupportedEncodingException e) {
-      throw new CoreException(new Status(IStatus.ERROR, GdtPlugin.PLUGIN_ID,
-          e.getMessage(), e));
+      throw new CoreException(new Status(
+          IStatus.ERROR, GdtPlugin.PLUGIN_ID, e.getMessage(), e));
     } catch (SdkException e) {
-      throw new CoreException(new Status(IStatus.ERROR, GdtPlugin.PLUGIN_ID,
-          e.getMessage(), e));
+      throw new CoreException(new Status(
+          IStatus.ERROR, GdtPlugin.PLUGIN_ID, e.getMessage(), e));
     } catch (ClassNotFoundException e) {
-      throw new CoreException(new Status(IStatus.ERROR, GdtPlugin.PLUGIN_ID,
-          e.getMessage(), e));
+      throw new CoreException(new Status(
+          IStatus.ERROR, GdtPlugin.PLUGIN_ID, e.getMessage(), e));
     } catch (IOException e) {
-      throw new CoreException(new Status(IStatus.ERROR, GdtPlugin.PLUGIN_ID,
-          e.getMessage(), e));
+      throw new CoreException(new Status(
+          IStatus.ERROR, GdtPlugin.PLUGIN_ID, e.getMessage(), e));
     } catch (BackingStoreException e) {
-      throw new CoreException(new Status(IStatus.ERROR, GdtPlugin.PLUGIN_ID,
-          e.getMessage(), e));
+      throw new CoreException(new Status(
+          IStatus.ERROR, GdtPlugin.PLUGIN_ID, e.getMessage(), e));
     }
   }
 }

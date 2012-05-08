@@ -14,6 +14,8 @@
  *******************************************************************************/
 package com.google.gdt.eclipse.core;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -177,6 +179,22 @@ public final class StringUtilities {
     }
 
     return s.toString();
+  }
+
+  /**
+   * Return a URL encoded string, assuming "UTF-8" encoding for input. If UTF-8
+   * is not supported, used default platform encoding.
+   * 
+   * @param s String to encode.
+   * @return URL encoded string.
+   */
+  @SuppressWarnings("deprecation")
+  public static String urlEncode(String s) {
+    try {
+      return URLEncoder.encode(s, "UTF-8");
+    } catch (UnsupportedEncodingException e) {
+      return URLEncoder.encode(s);
+    }
   }
 
   private StringUtilities() {

@@ -235,4 +235,18 @@
          install-size="0"
          version="0.0.0.qualifier"
          unpack="false"/>
+
+   <plugin
+         id="com.google.appengine.eclipse.webtools"
+         download-size="0"
+         install-size="0"
+         version="0.0.0.qualifier"
+         unpack="false"/>
+
+   <plugin
+         id="com.google.appengine.eclipse.webtools.e36"
+         download-size="0"
+         install-size="0"
+         version="0.0.0.qualifier"
+         unpack="false"/>
 </feature>

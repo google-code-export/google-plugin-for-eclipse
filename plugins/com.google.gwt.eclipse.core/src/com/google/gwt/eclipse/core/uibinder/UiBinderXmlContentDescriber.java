@@ -15,13 +15,13 @@
 package com.google.gwt.eclipse.core.uibinder;
 
 import com.google.gdt.eclipse.core.ContentDescriberUtilities;
-import com.google.gdt.eclipse.platform.content.XMLContentDescriber;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExecutableExtension;
 import org.eclipse.core.runtime.content.IContentDescription;
+import org.eclipse.core.runtime.content.XMLContentDescriber;
 import org.eclipse.core.runtime.content.XMLRootElementContentDescriber;
 
 import java.io.IOException;

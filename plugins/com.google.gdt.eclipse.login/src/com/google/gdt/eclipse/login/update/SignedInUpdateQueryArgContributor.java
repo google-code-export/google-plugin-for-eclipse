@@ -17,13 +17,15 @@ package com.google.gdt.eclipse.login.update;
 import com.google.gdt.eclipse.core.update.internal.core.UpdateQueryArgContributor;
 import com.google.gdt.eclipse.login.GoogleLogin;
 
+import org.eclipse.core.resources.IProject;
+
 /**
  * Class that contributes a URL argument to GPE's update ping to track the number
  * of users who are signed in.
  */
 public class SignedInUpdateQueryArgContributor implements UpdateQueryArgContributor {
 
-  public String getContribution() {
+  public String getContribution(IProject project) {
     if (GoogleLogin.getInstance().isLoggedIn()) {
       return "&isSignedIn=true";
     } else {

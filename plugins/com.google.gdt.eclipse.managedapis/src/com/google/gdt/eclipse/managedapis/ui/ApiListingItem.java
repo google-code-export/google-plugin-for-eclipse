@@ -1,16 +1,16 @@
 /*******************************************************************************
  * Copyright 2011 Google Inc. All Rights Reserved.
- *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
+ * 
+ *  All rights reserved. This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License v1.0 which
+ * accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *  Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *******************************************************************************/
 package com.google.gdt.eclipse.managedapis.ui;
 
@@ -50,10 +50,10 @@ import java.net.URL;
  * handles event propagation for mouse events to ensure click (and double-click)
  * events can be captured at a componentlevel.
  */
-public class ApiListingItem extends BaseSelectableControl implements
-    SelectableControl {
+public class ApiListingItem extends BaseSelectableControl implements SelectableControl {
 
   private static final int IMAGE_SIZE = 48;
+  private static final String PREFERRED_TEXT = "\nPreferred";
 
   private static Font BOLD_FONT;
 
@@ -66,8 +66,7 @@ public class ApiListingItem extends BaseSelectableControl implements
    * Create a new instance of the receiver with the specified parent, style and
    * info object/
    */
-  public ApiListingItem(Composite parent, ManagedApiEntry entry,
-      Resources resources) {
+  public ApiListingItem(Composite parent, ManagedApiEntry entry, Resources resources) {
     super(parent, SWT.NONE);
 
     assert null != entry : "Listing can not be null";
@@ -79,8 +78,7 @@ public class ApiListingItem extends BaseSelectableControl implements
     setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
     setBackground(parent.getBackground());
     defaultBackgroundColor = parent.getBackground();
-    selectedBackgroundColor = Display.getDefault().getSystemColor(
-        SWT.COLOR_LIST_SELECTION);
+    selectedBackgroundColor = Display.getDefault().getSystemColor(SWT.COLOR_LIST_SELECTION);
     initControl(entry);
   }
 
@@ -144,12 +142,12 @@ public class ApiListingItem extends BaseSelectableControl implements
     descriptionLabel.setText(descriptionLabelText.toString());
 
     if (entry.isInstalled() && !entry.isUpdateAvailable()) {
-      descriptionLabel.setForeground(parent.getDisplay().getSystemColor(
-          SWT.COLOR_GRAY));
+      descriptionLabel.setForeground(
+          parent.getDisplay().getSystemColor(SWT.COLOR_GRAY));
     }
-    
+
     listenTo(descriptionLabel);
-    
+
     return descriptionLabel;
   }
 
@@ -162,9 +160,13 @@ public class ApiListingItem extends BaseSelectableControl implements
 
   private Label createIconComponent(Composite parent, ManagedApiEntry entry) {
     Label iconLabel = new Label(parent, SWT.NONE);
-    GridDataFactory.swtDefaults().align(SWT.CENTER, SWT.BEGINNING).hint(
-        IMAGE_SIZE, SWT.DEFAULT).minSize(IMAGE_SIZE, SWT.DEFAULT).indent(0, 3).applyTo(iconLabel);
-    
+    GridDataFactory.swtDefaults()
+        .align(SWT.CENTER, SWT.BEGINNING)
+        .hint(IMAGE_SIZE, SWT.DEFAULT)
+        .minSize(IMAGE_SIZE, SWT.DEFAULT)
+        .indent(0, 3)
+        .applyTo(iconLabel);
+
     try {
       Image apiIcon = null;
       URL iconLink = entry.getIconLink(ManagedApiPlugin.ICON_KEY_API_IMPORT);
@@ -178,7 +180,8 @@ public class ApiListingItem extends BaseSelectableControl implements
         }
 
         try {
-          apiIcon = resources.getAPIIconForUrl(entry.getIconLink(ManagedApiPlugin.ICON_KEY_API_IMPORT));
+          apiIcon = resources.getAPIIconForUrl(
+              entry.getIconLink(ManagedApiPlugin.ICON_KEY_API_IMPORT));
         } catch (DeviceResourceException e) {
           ManagedApiLogger.warn("Unable to load icon for "
               + entry.getIconLink(ManagedApiPlugin.ICON_KEY_API_IMPORT));
@@ -186,8 +189,9 @@ public class ApiListingItem extends BaseSelectableControl implements
           ManagedApiLogger.warn(Messages.MalformedUrl + " for API Icon");
         }
       }
-      
-      Image image = apiIcon != null ? apiIcon : resources.getAPIDefaultIcon32Image();
+
+      Image image = apiIcon != null
+          ? apiIcon : resources.getAPIDefaultIcon32Image();
 
       if (entry.isInstalled()) {
         if (entry.isUpdateAvailable()) {
@@ -201,16 +205,16 @@ public class ApiListingItem extends BaseSelectableControl implements
     } catch (MalformedURLException e) {
       ManagedApiLogger.warn(Messages.MalformedUrl + " while API Icon");
     }
-    
+
     listenTo(iconLabel);
-    
+
     return iconLabel;
   }
 
   private Label createTitleLabel(Composite parent, ManagedApiEntry entry) {
     Label nameLabel = new Label(parent, SWT.NONE);
     nameLabel.setFont(getBoldFont(nameLabel.getFont()));
-    
+
     if (entry.isInstalled()) {
       if (entry.isUpdateAvailable()) {
         nameLabel.setText(entry.getDisplayName() + " (update available)");
@@ -242,26 +246,32 @@ public class ApiListingItem extends BaseSelectableControl implements
   private Label createVersionLabel(Composite parent, ManagedApiEntry entry) {
     Label versionLabel = new Label(parent, SWT.NONE);
     versionLabel.setForeground(getDisplay().getSystemColor(SWT.COLOR_GRAY));
-    
+
     String text;
-    
-    if (entry.isInstalled()) {
-      text = entry.getInstalledVersion();
-    } else {
+
+    if (entry.hasDirectoryEntry()) {
       text = entry.getDirectoryEntryVersion();
+      if (entry.getDirectoryEntry().isPreferred()) {
+        text += PREFERRED_TEXT;
+      }
+    } else {
+      text = entry.getInstalledVersion();
+      if (entry.getInstalled().isPreferred()) {
+        text += PREFERRED_TEXT;
+      }
     }
-    
+
     if (!text.startsWith("v")) {
       text = "v" + text;
     }
 
     versionLabel.setText(text);
-    
+
     listenTo(versionLabel);
-    
+
     return versionLabel;
   }
-  
+
   private Font getBoldFont(Font templateFont) {
     if (BOLD_FONT == null) {
       FontData fontData = templateFont.getFontData()[0];
@@ -272,30 +282,39 @@ public class ApiListingItem extends BaseSelectableControl implements
 
     return BOLD_FONT;
   }
-  
+
   private void initControl(ManagedApiEntry entry) {
-    GridLayoutFactory.fillDefaults().numColumns(3).equalWidth(false).extendedMargins(
-        2, 0, 2, 2).spacing(2, 0).applyTo(this);
+    GridLayoutFactory.fillDefaults()
+        .numColumns(3)
+        .equalWidth(false)
+        .extendedMargins(2, 0, 2, 2)
+        .spacing(2, 0)
+        .applyTo(this);
 
     Label iconLabel = createIconComponent(this, entry);
-    ((GridData)iconLabel.getLayoutData()).verticalSpan = 2;
+    ((GridData) iconLabel.getLayoutData()).verticalSpan = 2;
 
     Label nameLabel = createTitleLabel(this, entry);
-    GridDataFactory.fillDefaults().grab(true, false).align(SWT.BEGINNING,
-        SWT.CENTER).applyTo(nameLabel);
-    
+    GridDataFactory.fillDefaults()
+        .grab(true, false).align(SWT.BEGINNING, SWT.CENTER).applyTo(nameLabel);
+
     Label versionLabel = createVersionLabel(this, entry);
-    GridDataFactory.fillDefaults().grab(true, false).align(SWT.END,
-        SWT.CENTER).applyTo(versionLabel);
-    
+    versionLabel.setAlignment(SWT.RIGHT);
+    GridDataFactory.fillDefaults()
+        .grab(true, false).align(SWT.END, SWT.CENTER).applyTo(versionLabel);
+
     Label description = createDescriptionLabel(this, entry);
     // TODO: I'd like ellipses at the end of truncated labels -
     int lineHeight = description.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
-    GridDataFactory.fillDefaults().span(2, 1).grab(true, false).align(SWT.FILL, SWT.FILL).hint(100,
-        lineHeight * 3).applyTo(description);
+    GridDataFactory.fillDefaults()
+        .span(2, 1)
+        .grab(true, false)
+        .align(SWT.FILL, SWT.FILL)
+        .hint(100, lineHeight * 3)
+        .applyTo(description);
 
     updateBackground();
-    
+
     listenTo(this);
   }
 

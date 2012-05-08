@@ -16,7 +16,6 @@ package com.google.gwt.eclipse.core.uibinder.formatter;
 
 import com.google.gdt.eclipse.core.XmlUtilities;
 import com.google.gdt.eclipse.core.formatter.IndependentMultiPassContentFormatter;
-import com.google.gdt.eclipse.platform.content.XmlFormattingStrategy;
 import com.google.gwt.eclipse.core.uibinder.UiBinderException;
 import com.google.gwt.eclipse.core.uibinder.sse.StructuredTextPartitionerForUiBinderXml;
 import com.google.gwt.eclipse.core.uibinder.sse.css.InlinedCssFormattingStrategy;
@@ -33,6 +32,7 @@ import org.eclipse.wst.sse.core.internal.provisional.text.IStructuredDocument;
 import org.eclipse.wst.sse.core.internal.provisional.text.IStructuredPartitioning;
 import org.eclipse.wst.xml.core.internal.provisional.document.IDOMDocument;
 import org.eclipse.wst.xml.core.text.IXMLPartitions;
+import org.eclipse.wst.xml.ui.internal.XMLFormattingStrategy;
 
 import java.io.IOException;
 
@@ -59,7 +59,7 @@ public final class UiBinderFormatter {
     IndependentMultiPassContentFormatter formatter = new IndependentMultiPassContentFormatter(
         partitioning, IXMLPartitions.XML_DEFAULT, new StructuredDocumentCloner(
             partitioning, UIBINDER_XML_PARTITIONER_FACTORY));
-    formatter.setMasterStrategy(new XmlFormattingStrategy());
+    formatter.setMasterStrategy(new XMLFormattingStrategy());
     formatter.setSlaveStrategy2(new InlinedCssFormattingStrategy(),
         ICSSPartitions.STYLE);
 

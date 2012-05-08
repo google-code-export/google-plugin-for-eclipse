@@ -1,16 +1,16 @@
 /*******************************************************************************
  * Copyright 2011 Google Inc. All Rights Reserved.
- *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
+ * 
+ *  All rights reserved. This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License v1.0 which
+ * accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *  Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *******************************************************************************/
 package com.google.gdt.eclipse.managedapis.ui;
 
@@ -72,8 +72,8 @@ public class ApiImportWizard extends Wizard implements IImportWizard {
 
       dialog.addPageChangingListener(new IPageChangingListener() {
         public void handlePageChanging(PageChangingEvent event) {
-          if (event.getCurrentPage() == projectSelectionPage
-              && event.getTargetPage() == apiListingPage) {
+          if (event.getCurrentPage() == projectSelectionPage &&
+              event.getTargetPage() == apiListingPage) {
             event.doit = updateFromProjectSelectionPage();
           }
         }
@@ -85,7 +85,8 @@ public class ApiImportWizard extends Wizard implements IImportWizard {
     try {
       wizardIcon = resources.getManagedApiImportIcon();
     } catch (MalformedURLException e) {
-      ManagedApiLogger.warn("Unable to load Managed Api icon due to malformed URL");
+      ManagedApiLogger.warn(
+          "Unable to load Managed Api icon due to malformed URL");
     }
 
     // Add a project selection page.
@@ -96,8 +97,8 @@ public class ApiImportWizard extends Wizard implements IImportWizard {
     }
 
     // Add the API listings page.
-    apiListingPage = new ApiListingPage("GoogleApiPage",
-        managedApiListingSourceFactory);
+    apiListingPage = new ApiListingPage(
+        "GoogleApiPage", managedApiListingSourceFactory);
     apiListingPage.setImageDescriptor(wizardIcon);
     apiListingPage.setResources(resources);
 
@@ -135,18 +136,16 @@ public class ApiImportWizard extends Wizard implements IImportWizard {
         apisToImport.size() > 1 ? "Add Google APIs" : "Add Google API",
         apisToImport, project, "Add Google API {0}");
     try {
-      getContainer().run(
-          true,
-          true,
-          new WorkspaceModifyOperation(ResourcesPlugin.getWorkspace().getRoot()) {
-            @Override
-            protected void execute(IProgressMonitor monitor)
-                throws CoreException, InvocationTargetException,
-                InterruptedException {
-              installJob.run(monitor);
-              // already display errors to the user, so fall through
-            }
-          });
+      getContainer().run(true, true, new WorkspaceModifyOperation(
+          ResourcesPlugin.getWorkspace().getRoot()) {
+          @Override
+        protected void execute(IProgressMonitor monitor)
+            throws CoreException, InvocationTargetException,
+            InterruptedException {
+          installJob.run(monitor);
+          // already display errors to the user, so fall through
+        }
+      });
     } catch (InvocationTargetException e) {
       // Error --fall through
       return false;
@@ -161,20 +160,25 @@ public class ApiImportWizard extends Wizard implements IImportWizard {
     this.managedApiListingSourceFactory = managedApiListingSourceFactory;
 
     if (apiListingPage != null) {
-      apiListingPage.setManagedApiListingSourceFactory(managedApiListingSourceFactory);
+      apiListingPage.setManagedApiListingSourceFactory(
+          managedApiListingSourceFactory);
     }
   }
 
-  public void setProject(IProject project) throws CoreException {
+  public boolean setProject(IProject project) throws CoreException {
     this.project = project;
 
-    if (project != null) {
+    if (project != null && AppEngineCheckDialog.isAppEngineProject(project)) {
       ManagedApiListingSourceFactory sourceFactory = new ManagedApiListingSourceFactory();
-      sourceFactory.setApiDirectoryFactory(ManagedApiPlugin.getDefault().getApiDirectoryFactory());
-      sourceFactory.setProject(ManagedApiProjectImpl.getManagedApiProject(JavaCore.create(project)));
+      sourceFactory.setApiDirectoryFactory(
+          ManagedApiPlugin.getDefault().getApiDirectoryFactory());
+      sourceFactory.setProject(
+          ManagedApiProjectImpl.getManagedApiProject(JavaCore.create(project)));
 
       setManagedApiListingSourceFactory(sourceFactory);
+      return true;
     }
+    return false;
   }
 
   public void setResources(Resources resources) {
@@ -183,12 +187,10 @@ public class ApiImportWizard extends Wizard implements IImportWizard {
 
   private boolean updateFromProjectSelectionPage() {
     try {
-      setProject(projectSelectionPage.getSelectedProject());
-
-      return true;
+      return setProject(projectSelectionPage.getSelectedProject());
     } catch (CoreException ce) {
-      ((WizardDialog) getContainer()).setErrorMessage("Error with selected project: "
-          + ce.getMessage());
+      ((WizardDialog) getContainer()).setErrorMessage(
+          "Error with selected project: " + ce.getMessage());
 
       return false;
     }

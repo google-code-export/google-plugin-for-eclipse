@@ -14,6 +14,8 @@
  *******************************************************************************/
 package com.google.gdt.eclipse.core.update.internal.core;
 
+import org.eclipse.core.resources.IProject;
+
 /**
  * Interface for UpdateQueryArgContributor extension point.
  */
@@ -23,6 +25,6 @@ public interface UpdateQueryArgContributor {
    * @return The update query argument contribution. This must be in the form
    *         "&isSignedIn=true" or the empty string to contribute nothing
    */
-  String getContribution();
+  String getContribution(IProject project);
 
 }

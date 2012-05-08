@@ -15,7 +15,6 @@
 package com.google.gwt.eclipse.core.markers.quickfixes;
 
 import com.google.gdt.eclipse.core.JavaASTUtils;
-import com.google.gdt.eclipse.platform.jdt.text.correction.proposals.LinkedCorrectionProposal;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jdt.core.IJavaProject;
@@ -28,6 +27,7 @@ import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.rewrite.ASTRewrite;
 import org.eclipse.jdt.internal.ui.JavaPluginImages;
 import org.eclipse.jdt.internal.ui.text.correction.ASTResolving;
+import org.eclipse.jdt.internal.ui.text.correction.proposals.LinkedCorrectionProposal;
 import org.eclipse.jdt.ui.text.java.IJavaCompletionProposal;
 import org.eclipse.swt.graphics.Image;
 

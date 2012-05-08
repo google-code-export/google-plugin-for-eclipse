@@ -33,8 +33,8 @@ import com.google.gwt.eclipse.core.clientbundle.ClientBundleUtilities;
 import com.google.gwt.eclipse.core.uibinder.UiBinderConstants;
 import com.google.gwt.eclipse.core.uibinder.UiBinderException;
 import com.google.gwt.eclipse.core.uibinder.UiBinderUtilities;
-import com.google.gwt.eclipse.core.uibinder.UiBinderXmlModelUtilities;
 import com.google.gwt.eclipse.core.uibinder.UiBinderUtilities.ElExpressionFragmentVisitor;
+import com.google.gwt.eclipse.core.uibinder.UiBinderXmlModelUtilities;
 import com.google.gwt.eclipse.core.uibinder.contentassist.ElExpressionFirstFragmentComputer;
 import com.google.gwt.eclipse.core.uibinder.contentassist.ElExpressionFirstFragmentComputer.ElExpressionFirstFragment;
 import com.google.gwt.eclipse.core.uibinder.contentassist.computers.CssSelectorNameCollector;
@@ -47,6 +47,7 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.IMethod;
 import org.eclipse.jdt.core.IPackageFragment;
+import org.eclipse.jdt.core.IPackageFragmentRoot;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
@@ -62,7 +63,6 @@ import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -593,34 +593,32 @@ public class UiBinderXmlParser {
     addReference(xmlReferenceLocation, new LogicalJavaElementReferenceLocation(
         new LogicalPackage(packageName)));
 
-    List<IPackageFragment> packageFragments;
+    IPackageFragmentRoot[] packageFragmentRoots;
     try {
-      packageFragments = JavaModelSearch.getPackageFragments(javaProject,
-          packageName);
+      // Don't call JavaModelSearch.getPackageFragments here, which incurs an expensive
+      // exists check that is redundant with JavaModelSearch.isValidElement below.
+      packageFragmentRoots = javaProject.getAllPackageFragmentRoots();
     } catch (JavaModelException e) {
       GWTPluginLog.logError(e, "Could not parse UiBinder urn:import attribute");
       return;
     }
-
-    for (Iterator<IPackageFragment> it = packageFragments.iterator(); it.hasNext();) {
-      if (!JavaModelSearch.isValidElement(it.next())) {
-        it.remove();
+    for (IPackageFragmentRoot packageFragmentRoot : packageFragmentRoots) {
+      IPackageFragment packageFragment = packageFragmentRoot.getPackageFragment(packageName);
+      if (JavaModelSearch.isValidElement(packageFragment)) {
+        return; // Return as soon as we find any valid package with the name in the import
       }
     }
 
-    if (packageFragments.size() == 0) {
-      IRegion attrValueRegion = XmlUtilities.getAttributeValueRegion(attr);
-      if (attrValueRegion == null) {
-        // XML editor will flag invalid XML syntax
-        return;
-      }
-
-      int offset = attrValueRegion.getOffset() + urnImportLength;
-      int length = attrValueRegion.getLength() - urnImportLength;
-
-      problemMarkerManager.setPackageUndefinedError(new Region(offset, length),
-          packageName);
+    IRegion attrValueRegion = XmlUtilities.getAttributeValueRegion(attr);
+    if (attrValueRegion == null) {
+      // XML editor will flag invalid XML syntax
+      return;
     }
+
+    int offset = attrValueRegion.getOffset() + urnImportLength;
+    int length = attrValueRegion.getLength() - urnImportLength;
+
+    problemMarkerManager.setPackageUndefinedError(new Region(offset, length), packageName);
   }
 
   /**

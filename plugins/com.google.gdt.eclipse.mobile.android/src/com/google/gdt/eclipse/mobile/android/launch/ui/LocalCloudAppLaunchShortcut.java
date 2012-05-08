@@ -1,16 +1,16 @@
 /*******************************************************************************
  * Copyright 2011 Google Inc. All Rights Reserved.
- *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
+ * 
+ *  All rights reserved. This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License v1.0 which
+ * accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *  Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *******************************************************************************/
 package com.google.gdt.eclipse.mobile.android.launch.ui;
 
@@ -49,6 +49,7 @@ import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.PlatformUI;
+import org.osgi.service.prefs.BackingStoreException;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -61,7 +62,22 @@ import java.net.UnknownHostException;
 @SuppressWarnings("restriction")
 public class LocalCloudAppLaunchShortcut extends WebAppLaunchShortcut {
 
+  /**
+   * Set the Gae project name in the preferences in the Android project.
+   * 
+   * @throws BackingStoreException
+   */
+  public static void setGaeProjectName(IProject project, String projectName)
+      throws BackingStoreException {
+    IScopeContext projectScope = new ProjectScope(project);
+    IEclipsePreferences prefs = projectScope.getNode(
+        GdtAndroidPlugin.PLUGIN_ID);
+    prefs.put(ProjectCreationConstants.APP_ENGINE_PROJECT, projectName);
+    prefs.flush();
+  }
+
   private ILaunchConfiguration gaeConfig;
+
   private IProject project;
 
   public void launch(IEditorPart editor, String mode) {
@@ -93,8 +109,8 @@ public class LocalCloudAppLaunchShortcut extends WebAppLaunchShortcut {
                   "Could not launch debug, the App Engine project was not found");
               return;
             }
-            IProject gaeProject = ResourcesPlugin.getWorkspace().getRoot().getProject(
-                gaeProjectName);
+            IProject gaeProject = ResourcesPlugin.getWorkspace()
+                .getRoot().getProject(gaeProjectName);
             if (!gaeProject.isAccessible()) {
               // TODO: improve message
               MessageDialog.openError(Display.getDefault().getActiveShell(),
@@ -116,7 +132,8 @@ public class LocalCloudAppLaunchShortcut extends WebAppLaunchShortcut {
    */
   private String getGaeProjectName(IProject project) {
     IScopeContext projectScope = new ProjectScope(project);
-    IEclipsePreferences prefs = projectScope.getNode(GdtAndroidPlugin.PLUGIN_ID);
+    IEclipsePreferences prefs = projectScope.getNode(
+        GdtAndroidPlugin.PLUGIN_ID);
     return prefs.get(ProjectCreationConstants.APP_ENGINE_PROJECT, null);
   }
 
@@ -141,7 +158,8 @@ public class LocalCloudAppLaunchShortcut extends WebAppLaunchShortcut {
     }
 
     // get an existing or new launch configuration
-    ILaunchConfiguration config = AndroidLaunchController.getLaunchConfig(project);
+    ILaunchConfiguration config = AndroidLaunchController.getLaunchConfig(
+        project);
     if (config != null) {
       // and launch!
       DebugUITools.launch(config, mode);
@@ -166,7 +184,8 @@ public class LocalCloudAppLaunchShortcut extends WebAppLaunchShortcut {
     try {
       String startupUrl = WebAppLaunchUtil.determineStartupURL(resource, false);
       if (startupUrl != null) {
-        gaeConfig = findOrCreateLaunchConfiguration(resource, startupUrl, false);
+        gaeConfig = findOrCreateLaunchConfiguration(
+            resource, startupUrl, false);
 
         ILaunchConfigurationWorkingCopy wc = gaeConfig.getWorkingCopy();
         wc.setAttribute(IDebugUIConstants.ATTR_LAUNCH_IN_BACKGROUND, false);
@@ -192,11 +211,11 @@ public class LocalCloudAppLaunchShortcut extends WebAppLaunchShortcut {
     String serverport = "8888"; //$NON-NLS-N$
     boolean autoPort;
     try {
-      autoPort = LaunchConfigurationAttributeUtilities.getBoolean(gaeConfig,
-          WebAppLaunchAttributes.AUTO_PORT_SELECTION);
+      autoPort = LaunchConfigurationAttributeUtilities.getBoolean(
+          gaeConfig, WebAppLaunchAttributes.AUTO_PORT_SELECTION);
       if (!autoPort) {
-        serverport = LaunchConfigurationAttributeUtilities.getString(gaeConfig,
-            WebAppLaunchAttributes.SERVER_PORT);
+        serverport = LaunchConfigurationAttributeUtilities.getString(
+            gaeConfig, WebAppLaunchAttributes.SERVER_PORT);
       }
       String filePath = ProjectCreationConstants.ASSETS_DIRECTORY;
       String fileName = "debugging_prefs.properties"; //$NON-NLS-N$
@@ -215,7 +234,7 @@ public class LocalCloudAppLaunchShortcut extends WebAppLaunchShortcut {
         ResourceUtils.createFile(file.getFullPath(), buffer.toString());
       }
       project.refreshLocal(IResource.DEPTH_INFINITE, new NullProgressMonitor());
-      
+
     } catch (CoreException e) {
       GdtAndroidPlugin.log(e);
     } catch (UnknownHostException e) {

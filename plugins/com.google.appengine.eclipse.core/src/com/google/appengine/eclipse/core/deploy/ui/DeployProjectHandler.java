@@ -1,20 +1,21 @@
 /*******************************************************************************
  * Copyright 2011 Google Inc. All Rights Reserved.
- *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
+ * 
+ *  All rights reserved. This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License v1.0 which
+ * accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *  Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *******************************************************************************/
 package com.google.appengine.eclipse.core.deploy.ui;
 
 import com.google.appengine.eclipse.core.AppEngineCorePluginLog;
+import com.google.appengine.eclipse.core.api.XmlUtil;
 import com.google.appengine.eclipse.core.deploy.DeployProjectJob;
 import com.google.appengine.eclipse.core.resources.GaeProject;
 import com.google.gdt.eclipse.core.ActiveProjectFinder;
@@ -37,8 +38,14 @@ import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.PlatformUI;
+import org.xml.sax.SAXException;
 
+import java.io.IOException;
 import java.io.OutputStream;
+
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactoryConfigurationError;
 
 /**
  * Deploys a GAE project.
@@ -48,8 +55,8 @@ public class DeployProjectHandler extends AbstractHandler {
   public Object execute(ExecutionEvent event) {
 
     if (!GoogleLogin.getInstance().isLoggedIn()) {
-      boolean signedIn = GoogleLogin.getInstance().logIn(
-          "Deploying to Google App Engine requires authentication.");
+      boolean signedIn = GoogleLogin.getInstance()
+          .logIn("Deploying to Google App Engine requires authentication.");
       if (!signedIn) {
         // user canceled signing in
         return null;
@@ -60,28 +67,42 @@ public class DeployProjectHandler extends AbstractHandler {
     if (!PlatformUI.getWorkbench().saveAllEditors(true)) {
       return null;
     }
+    //
 
     // Get initial project selection
     IProject project = ActiveProjectFinder.getInstance().getProject();
+    try {
+      new XmlUtil().removeDevApiServerNode(project);
+    } catch (ParserConfigurationException e) {
+      AppEngineCorePluginLog.logError(e);
+    } catch (SAXException e) {
+      AppEngineCorePluginLog.logError(e);
+    } catch (IOException e) {
+      AppEngineCorePluginLog.logError(e);
+    } catch (TransformerFactoryConfigurationError e) {
+      AppEngineCorePluginLog.logError(e);
+    } catch (TransformerException e) {
+      AppEngineCorePluginLog.logError(e);
+    }
 
     // Gather deployment parameters
-    DeployProjectDialog dlg = new DeployProjectDialog(project,
-        Display.getDefault().getActiveShell());
+    DeployProjectDialog dlg = new DeployProjectDialog(
+        project, Display.getDefault().getActiveShell());
     if (dlg.open() != Window.OK) {
       return null;
     }
 
     // The project may have changed; update the selectedProject to reflect this.
     project = dlg.getProject();
-    
+
     DeploymentSet deploymentSet = dlg.getDeploymentSet();
-    
+
     // Make sure the project is ready for deployment
     GaeProject gaeProject = GaeProject.create(project);
     if (!shouldDeploy(gaeProject)) {
       return null;
     }
-    
+
     IPath warLocation = WebAppUtilities.getWarOutLocationOrPrompt(project);
 
     if (warLocation == null) {
@@ -90,8 +111,8 @@ public class DeployProjectHandler extends AbstractHandler {
     }
 
     // Start the deploy job
-    CustomMessageConsole messageConsole = MessageConsoleUtilities.getMessageConsole(
-        project.getName() + " - Deploy to App Engine", null);
+    CustomMessageConsole messageConsole = MessageConsoleUtilities
+      .getMessageConsole(project.getName() + " - Deploy to App Engine", null);
 
     String oauth2Token;
     try {
@@ -100,14 +121,14 @@ public class DeployProjectHandler extends AbstractHandler {
       AppEngineCorePluginLog.logError(e, "Error while deploying to AppEngine.");
       MessageDialog.openError(Display.getDefault().getActiveShell(),
           "Error while deploying to AppEngine",
-          "An error occured while deploying to AppEngine. "
+              "An error occured while deploying to AppEngine. "
               + "See the error log for more details");
       return null;
     }
 
     OutputStream newMessageStream = messageConsole.newMessageStream();
-    Job deployJob = new DeployProjectJob(oauth2Token, gaeProject, warLocation,
-      deploymentSet, newMessageStream);
+    Job deployJob = new DeployProjectJob(
+        oauth2Token, gaeProject, warLocation, deploymentSet, newMessageStream);
 
     final TerminateJobAction terminateJobAction = new TerminateJobAction(
         deployJob);
@@ -115,14 +136,14 @@ public class DeployProjectHandler extends AbstractHandler {
     messageConsole.activate();
 
     deployJob.addJobChangeListener(new JobChangeAdapter() {
-      @Override
+        @Override
       public void done(IJobChangeEvent event) {
         terminateJobAction.setEnabled(false);
       }
     });
 
-    PlatformUI.getWorkbench().getProgressService().showInDialog(
-        Display.getDefault().getActiveShell(), deployJob);
+    PlatformUI.getWorkbench().getProgressService()
+        .showInDialog(Display.getDefault().getActiveShell(), deployJob);
     deployJob.schedule();
 
     return null;
@@ -137,8 +158,8 @@ public class DeployProjectHandler extends AbstractHandler {
     } else if (status.getSeverity() == IStatus.WARNING) {
       String message = status.getMessage()
           + "\n\nDo you want to continue and deploy anyway?";
-      return MessageDialog.openQuestion(Display.getDefault().getActiveShell(),
-          "Google App Engine", message);
+      return MessageDialog.openQuestion(
+          Display.getDefault().getActiveShell(), "Google App Engine", message);
     }
 
     return true;

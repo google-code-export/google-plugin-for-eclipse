@@ -41,3 +41,4 @@ Bundle-ClassPath: .,
  lib/com.google.gdt.googleapi.core.jar
 Bundle-Activator: com.google.gdt.eclipse.managedapis.ManagedApiPlugin
 Bundle-Localization: plugin
+Import-Package: com.google.appengine.eclipse.core.nature

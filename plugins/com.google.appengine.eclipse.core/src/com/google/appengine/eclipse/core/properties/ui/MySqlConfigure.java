@@ -26,7 +26,12 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.debug.internal.ui.SWTFactory;
+<<<<<<< .mine
+import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jface.dialogs.StatusDialog;
+=======
+import org.eclipse.jface.dialogs.StatusDialog;
+>>>>>>> .r4
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
@@ -63,10 +68,18 @@ public class MySqlConfigure extends StatusDialog {
   private Text jdbcJar;
   private Link jdbcJarLink;
   private IProject project;
+  private IJavaProject javaProject;
 
+<<<<<<< .mine
+  public MySqlConfigure(Shell shell, IJavaProject javaProject) {
+    super(shell);
+    this.project = javaProject.getProject();
+    this.javaProject = javaProject;
+=======
   public MySqlConfigure(Shell shell, IProject project) {
     super(shell);
     this.project = project;
+>>>>>>> .r4
   }
 
   /*
@@ -120,7 +133,11 @@ public class MySqlConfigure extends StatusDialog {
           databasePassword.getText().trim());
       GoogleCloudSqlProperties.setMySqlJdbcJar(project,
           jdbcJar.getText().trim());
+<<<<<<< .mine
+      SqlConnectionExtensionPopulator.populateCloudSQLBridgeExtender(javaProject,
+=======
       SqlConnectionExtensionPopulator.populateCloudSQLBridgeExtender(project,
+>>>>>>> .r4
           SqlConnectionExtensionPopulator.ConnectionType.CONNECTION_TYPE_LOCAL_MYSQL);
       GoogleCloudSqlProperties.setMySqlIsConfigured(project, true);
     } catch (NumberFormatException e) {

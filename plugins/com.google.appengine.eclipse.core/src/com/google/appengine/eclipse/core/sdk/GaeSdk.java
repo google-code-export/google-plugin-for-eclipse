@@ -361,6 +361,17 @@ public class GaeSdk extends AbstractSdk {
   public File[] getWebAppClasspathFiles(IProject project) {
     try {
       AppEngineBridge appEngineBridge = AppEngineBridgeFactory.getAppEngineBridge(getInstallationPath());
+<<<<<<< .mine
+      List<File> userLibFiles = new ArrayList<File>(appEngineBridge.getUserLibFiles());
+      if (!GaeProjectProperties.getGaeDatanucleusEnabled(project)) {
+        for (File file : appEngineBridge.getUserLibFiles()) {
+          if (GAE_DATANUCLEUS_FILES.contains(file.getName())) {
+            userLibFiles.remove(file);
+          }
+        }
+      }
+
+=======
       List<File> userLibFiles = new ArrayList<File>(appEngineBridge.getUserLibFiles());
       if (!GaeProjectProperties.getGaeDatanucleusEnabled(project)) {
         for (File file : appEngineBridge.getUserLibFiles()) {
@@ -377,6 +388,7 @@ public class GaeSdk extends AbstractSdk {
         userLibFiles.add(new File(filePath));
       }
 
+>>>>>>> .r4
       return userLibFiles.toArray(NO_FILES);
     } catch (CoreException e) {
       // Validate method will tell you what is wrong.

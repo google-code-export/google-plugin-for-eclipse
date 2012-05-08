@@ -6,6 +6,7 @@ Bundle-Version: 0.0.0.qualifier
 Bundle-Activator: com.google.gdt.eclipse.login.GoogleLoginPlugin
 Bundle-Vendor: %providerName
 Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.resources,
  org.eclipse.core.runtime,
  com.google.gdt.eclipse.core
 Bundle-RequiredExecutionEnvironment: J2SE-1.5

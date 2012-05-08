@@ -14,12 +14,12 @@
  *******************************************************************************/
 package com.google.gwt.eclipse.core.refactoring;
 
-import com.google.gdt.eclipse.platform.jdt.refactoring.CompilationUnitChange;
 import com.google.gwt.eclipse.core.platformproxy.refactoring.IJsniReferenceChange;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jdt.core.ICompilationUnit;
+import org.eclipse.jdt.core.refactoring.CompilationUnitChange;
 import org.eclipse.ltk.core.refactoring.Change;
 import org.eclipse.ltk.core.refactoring.TextFileChange;
 

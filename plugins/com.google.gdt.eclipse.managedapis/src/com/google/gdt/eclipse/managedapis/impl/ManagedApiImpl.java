@@ -1,16 +1,16 @@
 /*******************************************************************************
  * Copyright 2011 Google Inc. All Rights Reserved.
- *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
+ * 
+ * All rights reserved. This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License v1.0 which
+ * accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *******************************************************************************/
 package com.google.gdt.eclipse.managedapis.impl;
 
@@ -76,6 +76,15 @@ public class ManagedApiImpl implements ManagedApi {
     return managedApi;
   }
 
+  public static ManagedApiResourceVisitor scanManagedApiFiles(
+      final EclipseProject project, final IFolder rootDir) throws CoreException {
+    ManagedApiResourceVisitor visitor = new ManagedApiResourceVisitor();
+    visitor.setProject(project);
+    visitor.setRootDir(rootDir);
+    rootDir.accept(visitor);
+    return visitor;
+  }
+
   private static ImageDescriptor createClasspathContainerIconImageDescriptor(
       ApiInfo apiInfo) {
     ImageDescriptor imageDescriptor = null;
@@ -102,15 +111,6 @@ public class ManagedApiImpl implements ManagedApi {
     return imageDescriptor;
   }
 
-  private static ManagedApiResourceVisitor scanManagedApiFiles(
-      final EclipseProject project, final IFolder rootDir) throws CoreException {
-    ManagedApiResourceVisitor visitor = new ManagedApiResourceVisitor();
-    visitor.setProject(project);
-    visitor.setRootDir(rootDir);
-    rootDir.accept(visitor);
-    return visitor;
-  }
-
   /**
    * An IApiInfo data provider.
    */
@@ -134,6 +134,8 @@ public class ManagedApiImpl implements ManagedApi {
   private final IFolder managedApiRootDirectory;
 
   private boolean updateAvailable;
+
+  private boolean revisionUpdateAvailable;
 
   private ImageDescriptor iconImageDescriptor;
 
@@ -175,8 +177,13 @@ public class ManagedApiImpl implements ManagedApi {
     if (managedApiRootDirectory == null) {
       if (other.managedApiRootDirectory != null)
         return false;
-    } else if (!managedApiRootDirectory.equals(other.managedApiRootDirectory))
+    } else if (!managedApiRootDirectory.equals(other.managedApiRootDirectory)) {
       return false;
+    } else if (updateAvailable != other.isUpdateAvailable()) {
+      return false;
+    } else if (revisionUpdateAvailable != other.isRevisionUpdateAvailable()) {
+      return false;
+    }
     return true;
   }
 
@@ -288,8 +295,16 @@ public class ManagedApiImpl implements ManagedApi {
     return apiInfo.isPreferred();
   }
 
+  public boolean isRevisionUpdateAvailable() {
+    return revisionUpdateAvailable;
+  }
+
   public boolean isUpdateAvailable() {
     return updateAvailable;
+  }
+
+  public void setRevisionUpdateAvailable(boolean revisionUpdateAvailable) {
+    this.revisionUpdateAvailable = revisionUpdateAvailable;
   }
 
   public void setUpdateAvailable() {

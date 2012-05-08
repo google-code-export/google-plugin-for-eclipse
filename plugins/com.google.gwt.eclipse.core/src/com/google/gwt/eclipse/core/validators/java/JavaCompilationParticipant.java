@@ -17,7 +17,6 @@ package com.google.gwt.eclipse.core.validators.java;
 import com.google.gdt.eclipse.core.BuilderUtilities;
 import com.google.gdt.eclipse.core.JavaASTUtils;
 import com.google.gdt.eclipse.core.validation.ValidationResult;
-import com.google.gdt.eclipse.platform.jdt.internal.corext.dom.ASTBatchParser;
 import com.google.gwt.dev.util.Empty;
 import com.google.gwt.eclipse.core.GWTPluginLog;
 import com.google.gwt.eclipse.core.clientbundle.ClientBundleResourceDependencyIndex;
@@ -62,6 +61,7 @@ import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTRequestor;
 import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.internal.corext.dom.ASTBatchParser;
 
 import java.util.ArrayList;
 import java.util.Arrays;

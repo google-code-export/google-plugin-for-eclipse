@@ -16,12 +16,22 @@ package com.google.appengine.eclipse.core.preferences;
 
 import com.google.appengine.eclipse.core.AppEngineCorePlugin;
 import com.google.appengine.eclipse.core.AppEngineCorePluginLog;
+import com.google.appengine.eclipse.core.datatools.SqlConnectionExtensionPopulator;
 import com.google.appengine.eclipse.core.nature.GaeNature;
+<<<<<<< .mine
+import com.google.appengine.eclipse.core.properties.GaeProjectProperties;
+=======
 import com.google.appengine.eclipse.core.properties.GaeProjectProperties;
 import com.google.appengine.eclipse.core.properties.GoogleCloudSqlProperties;
 import com.google.appengine.eclipse.core.properties.ui.GaeProjectPropertyPage;
+>>>>>>> .r4
 import com.google.appengine.eclipse.core.resources.GaeProject;
+<<<<<<< .mine
+import com.google.appengine.eclipse.core.sdk.AppEngineBridge;
 import com.google.appengine.eclipse.core.sdk.AppEngineUpdateProjectSdkCommand;
+=======
+import com.google.appengine.eclipse.core.sdk.AppEngineUpdateProjectSdkCommand;
+>>>>>>> .r4
 import com.google.appengine.eclipse.core.sdk.AppEngineUpdateWebInfFolderCommand;
 import com.google.appengine.eclipse.core.sdk.GaeSdk;
 import com.google.appengine.eclipse.core.sdk.GaeSdkCapability;
@@ -43,8 +53,12 @@ import org.eclipse.jdt.core.JavaCore;
 import org.osgi.service.prefs.BackingStoreException;
 
 import java.io.FileNotFoundException;
+<<<<<<< .mine
+import java.util.List;
+=======
 import java.io.IOException;
 import java.util.List;
+>>>>>>> .r4
 
 /**
  * Contains static methods for retrieving and setting GAE plug-in preferences.
@@ -54,13 +68,20 @@ public final class GaePreferences {
   private static SdkManager<GaeSdk> sdkManager;
 
   static {
-    sdkManager = new SdkManager<GaeSdk>(GaeSdkContainer.CONTAINER_ID,
-        getEclipsePreferences(), GaeSdk.getFactory());
+    sdkManager = new SdkManager<GaeSdk>(
+        GaeSdkContainer.CONTAINER_ID, getEclipsePreferences(), GaeSdk.getFactory());
     sdkManager.addSdkUpdateListener(new SdkManager.SdkUpdateListener<GaeSdk>() {
-      public void onSdkUpdate(SdkUpdateEvent<GaeSdk> sdkUpdateEvent)
-          throws CoreException {
-        IJavaProject[] projects = JavaCore.create(
-            ResourcesPlugin.getWorkspace().getRoot()).getJavaProjects();
+      public void onSdkUpdate(SdkUpdateEvent<GaeSdk> sdkUpdateEvent) throws CoreException {
+        IJavaProject[] projects =
+            JavaCore.create(ResourcesPlugin.getWorkspace().getRoot()).getJavaProjects();
+        GaeSdk newDefaultSdk = null;
+        List<SdkUpdate<GaeSdk>> sdkUpdates = sdkUpdateEvent.getUpdates();
+        for (SdkUpdate<GaeSdk> sdkUpdate : sdkUpdates) {
+          if (sdkUpdate.getType() == SdkUpdate.Type.NEW_DEFAULT) {
+            newDefaultSdk = sdkUpdate.getSdk();
+            break;
+          }
+        }
         GaeSdk newDefaultSdk = null;
         List<SdkUpdate<GaeSdk>> sdkUpdates = sdkUpdateEvent.getUpdates();
         for (SdkUpdate<GaeSdk> sdkUpdate : sdkUpdates) {
@@ -75,6 +96,13 @@ public final class GaePreferences {
           }
           GaeSdk sdk = null;
           try {
+<<<<<<< .mine
+            if (GaeProjectProperties.getIsUseSdkFromDefault(project.getProject())) {
+              sdk = newDefaultSdk;
+            } else {
+              GaeProject p = GaeProject.create(project.getProject());
+              sdk = p.getSdk();
+=======
             if (GaeProjectProperties.getIsUseSdkFromDefault(project.getProject())) {
               sdk = newDefaultSdk;
               // If a project has Google Cloud SQL enabled and the selected sdk
@@ -88,7 +116,24 @@ public final class GaePreferences {
             } else {
               GaeProject p = GaeProject.create(project.getProject());
               sdk = p.getSdk();
+>>>>>>> .r4
             }
+<<<<<<< .mine
+            if (sdk != null && WebAppUtilities.hasManagedWarOut(project.getProject())) {
+              UpdateType updateType = AppEngineUpdateProjectSdkCommand.computeUpdateType(
+                  GaeSdk.findSdkFor(project), sdk,
+                  GaeProjectProperties.getIsUseSdkFromDefault(project.getProject()));
+              new AppEngineUpdateProjectSdkCommand(
+                  project, GaeSdk.findSdkFor(project), sdk, updateType, null).execute();
+              new AppEngineUpdateWebInfFolderCommand(project, sdk).execute();
+
+              // Finally make sure that DTP google_sql.jar driver is reset in dtp connections
+              SqlConnectionExtensionPopulator.populateCloudSQLBridgeExtender(project,
+                  sdk.getInstallationPath().toOSString()
+                  + AppEngineBridge.APPENGINE_CLOUD_SQL_JAR_PATH_IN_SDK
+                  + AppEngineBridge.APPENGINE_CLOUD_SQL_JAR);
+            }
+=======
             if (sdk != null && WebAppUtilities.hasManagedWarOut(project.getProject())) {
               UpdateType updateType = AppEngineUpdateProjectSdkCommand.computeUpdateType(
                   GaeSdk.findSdkFor(project), sdk, 
@@ -97,6 +142,7 @@ public final class GaePreferences {
                   updateType, null).execute();
               new AppEngineUpdateWebInfFolderCommand(project, sdk).execute();
             }
+>>>>>>> .r4
           } catch (FileNotFoundException e) {
             // Log the error and continue
             AppEngineCorePluginLog.logError(e);

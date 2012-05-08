@@ -1,22 +1,23 @@
 /*******************************************************************************
  * Copyright 2011 Google Inc. All Rights Reserved.
- *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
+ * 
+ *  All rights reserved. This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License v1.0 which
+ * accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *  Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *******************************************************************************/
 package com.google.gdt.eclipse.managedapis.impl;
 
 import com.google.gdt.eclipse.core.ResourceUtils;
 import com.google.gdt.eclipse.managedapis.ManagedApi;
 import com.google.gdt.eclipse.managedapis.ManagedApiLogger;
+import com.google.gdt.eclipse.managedapis.ManagedApiPlugin;
 import com.google.gdt.eclipse.managedapis.ManagedApiProject;
 import com.google.gdt.eclipse.managedapis.ManagedApiProjectObserver;
 
@@ -42,8 +43,8 @@ import java.util.Set;
 /**
  * TODO: doc me.
  */
-public class ManagedApiProjectCopyToProvider implements
-    ManagedApiProjectObserver {
+public class ManagedApiProjectCopyToProvider
+    implements ManagedApiProjectObserver {
 
   private ManagedApiProject project;
 
@@ -59,8 +60,8 @@ public class ManagedApiProjectCopyToProvider implements
         copyJarFiles(apis, targetFolder);
       }
     } catch (CoreException e) {
-      ManagedApiLogger.warn(e,
-          "Error accessing project attribute: CopyToTargetDir");
+      ManagedApiLogger.warn(
+          e, "Error accessing project attribute: CopyToTargetDir");
     }
   }
 
@@ -81,6 +82,10 @@ public class ManagedApiProjectCopyToProvider implements
     }
   }
 
+  public void refreshManagedApis(ManagedApi[] apis) {
+    addManagedApis(apis);
+  }
+
   /**
    * Remove JAR files from the target location when the managed APIs that
    * provide them are removed. This method takes an array of ManagedApis that
@@ -95,13 +100,12 @@ public class ManagedApiProjectCopyToProvider implements
         Set<ManagedApi> originalApiSet = new HashSet<ManagedApi>();
         originalApiSet.addAll(Arrays.asList(targetApis));
         originalApiSet.addAll(Arrays.asList(apisRemoved));
-        removeJarFiles(
-            originalApiSet.toArray(new ManagedApi[originalApiSet.size()]),
-            targetApis, targetFolder);
+        removeJarFiles(originalApiSet.toArray(
+            new ManagedApi[originalApiSet.size()]), targetApis, targetFolder);
       }
     } catch (CoreException e) {
-      ManagedApiLogger.warn(e,
-          "Error accessing project attribute: CopyToTargetDir");
+      ManagedApiLogger.warn(
+          e, "Error accessing project attribute: CopyToTargetDir");
     }
   }
 
@@ -123,7 +127,7 @@ public class ManagedApiProjectCopyToProvider implements
     final IClasspathEntry[] classpathEntries = collectClasspathEntries(apis);
 
     Job copyApiJob = new Job("Copy jar files for added APIs") {
-      @Override
+        @Override
       protected IStatus run(IProgressMonitor monitor) {
         IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
         for (IClasspathEntry entry : classpathEntries) {
@@ -132,12 +136,12 @@ public class ManagedApiProjectCopyToProvider implements
 
           try {
             if (destFile.exists()) {
-              destFile.delete(true, new NullProgressMonitor());
+              continue;
             }
 
             if (sourceFile != null) {
-              ResourceUtils.createFile(destFile.getFullPath(),
-                  sourceFile.getContents(true));
+              ResourceUtils.createFile(
+                  destFile.getFullPath(), sourceFile.getContents(true));
             }
           } catch (CoreException e) {
             ManagedApiLogger.log(ManagedApiLogger.ERROR, MessageFormat.format(
@@ -158,13 +162,17 @@ public class ManagedApiProjectCopyToProvider implements
     return destFile;
   }
 
-  private void removeJarFiles(ManagedApi[] oldApis, ManagedApi[] newApis,
-      IFolder targetFolder) throws CoreException {
+  private void removeJarFiles(
+      ManagedApi[] oldApis, ManagedApi[] newApis, IFolder targetFolder)
+      throws CoreException {
     final Set<IFile> removalSet = new HashSet<IFile>();
 
     IClasspathEntry[] oldClasspathEntries = collectClasspathEntries(oldApis);
     for (IClasspathEntry entry : oldClasspathEntries) {
-      removalSet.add(getTargetFile(targetFolder, entry));
+      if (!entry.getPath()
+          .toString().contains(ManagedApiPlugin.DEPENDENCIES_FOLDER_NAME)) {
+        removalSet.add(getTargetFile(targetFolder, entry));
+      }
     }
 
     IClasspathEntry[] newClasspathEntries = collectClasspathEntries(newApis);
@@ -173,7 +181,7 @@ public class ManagedApiProjectCopyToProvider implements
     }
 
     Job deleteApiJob = new Job("Delete jars for removed APIs") {
-      @Override
+        @Override
       protected IStatus run(IProgressMonitor monitor) {
         for (IFile file : removalSet) {
           try {
