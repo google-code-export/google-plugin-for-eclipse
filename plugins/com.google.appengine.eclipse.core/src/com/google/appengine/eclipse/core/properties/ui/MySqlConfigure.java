@@ -26,12 +26,8 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.debug.internal.ui.SWTFactory;
-<<<<<<< .mine
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jface.dialogs.StatusDialog;
-=======
-import org.eclipse.jface.dialogs.StatusDialog;
->>>>>>> .r4
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
@@ -70,86 +66,10 @@ public class MySqlConfigure extends StatusDialog {
   private IProject project;
   private IJavaProject javaProject;
 
-<<<<<<< .mine
   public MySqlConfigure(Shell shell, IJavaProject javaProject) {
     super(shell);
     this.project = javaProject.getProject();
     this.javaProject = javaProject;
-=======
-  public MySqlConfigure(Shell shell, IProject project) {
-    super(shell);
-    this.project = project;
->>>>>>> .r4
-  }
-
-  /*
-   * (non-Javadoc)
-   *
-   * @see org.eclipse.jface.dialogs.Dialog#create()
-   */
-  @Override
-  public void create() {
-    super.create();
-    getShell().setText("Configure MySQL instance");
-  }
-
-  /*
-   * (non-Javadoc)
-   *
-   * @see
-   * org.eclipse.jface.dialogs.Dialog#createDialogArea(org.eclipse.swt.widgets
-   * .Composite)
-   */
-  @Override
-  protected Control createDialogArea(Composite parent) {
-    Composite composite = SWTFactory.createComposite(
-        (Composite) super.createDialogArea(parent), 2, 1, SWT.HORIZONTAL);
-    addControls(composite);
-    initializeControls();
-    addEventHandlers();
-    updateStatus(StatusUtilities.newInfoStatus("Please enter database details",
-        AppEngineCorePlugin.PLUGIN_ID));
-    return composite;
-  }
-
-  /*
-   * (non-Javadoc)
-   *
-   * @see org.eclipse.jface.dialogs.Dialog#okPressed()
-   */
-  @Override
-  protected void okPressed() {
-    validateFields();
-    try {
-      GoogleCloudSqlProperties.setMySqlHostName(project,
-          hostName.getText().trim());
-      GoogleCloudSqlProperties.setMySqlDatabaseName(project,
-          databaseName.getText().trim());
-      GoogleCloudSqlProperties.setMySqlPort(project,
-          Integer.parseInt(port.getText().trim()));
-      GoogleCloudSqlProperties.setMySqlDatabaseUser(project,
-          databaseUser.getText().trim());
-      GoogleCloudSqlProperties.setMySqlDatabasePassword(project,
-          databasePassword.getText().trim());
-      GoogleCloudSqlProperties.setMySqlJdbcJar(project,
-          jdbcJar.getText().trim());
-<<<<<<< .mine
-      SqlConnectionExtensionPopulator.populateCloudSQLBridgeExtender(javaProject,
-=======
-      SqlConnectionExtensionPopulator.populateCloudSQLBridgeExtender(project,
->>>>>>> .r4
-          SqlConnectionExtensionPopulator.ConnectionType.CONNECTION_TYPE_LOCAL_MYSQL);
-      GoogleCloudSqlProperties.setMySqlIsConfigured(project, true);
-    } catch (NumberFormatException e) {
-      // This case is taken care by validateFields().
-      AppEngineCorePluginLog.logError(e,
-          "Incorrect port. Should have been taken care by validateFields()");
-    } catch (BackingStoreException e) {
-      AppEngineCorePluginLog.logError(e,
-          "Unable to save MySQL Configurations for local development Instance.");
-    }
-
-    super.okPressed();
   }
 
   /**
@@ -246,12 +166,47 @@ public class MySqlConfigure extends StatusDialog {
     });
   }
 
+  /*
+   * (non-Javadoc)
+   *
+   * @see org.eclipse.jface.dialogs.Dialog#okPressed()
+   */
   private String browseForJar() {
     FileDialog fileDialog = new FileDialog(getShell(), SWT.OPEN);
     fileDialog.setFilterPath(jdbcJar.getText().trim());
     fileDialog.setFilterExtensions(JDBC_FILE_FILTER_EXTENSIONS);
 
     return fileDialog.open();
+  }
+
+  /*
+   * (non-Javadoc)
+   *
+   * @see org.eclipse.jface.dialogs.Dialog#create()
+   */
+  @Override
+  public void create() {
+    super.create();
+    getShell().setText("Configure MySQL instance");
+  }
+
+  /*
+   * (non-Javadoc)
+   *
+   * @see
+   * org.eclipse.jface.dialogs.Dialog#createDialogArea(org.eclipse.swt.widgets
+   * .Composite)
+   */
+  @Override
+  protected Control createDialogArea(Composite parent) {
+    Composite composite = SWTFactory.createComposite(
+        (Composite) super.createDialogArea(parent), 2, 1, SWT.HORIZONTAL);
+    addControls(composite);
+    initializeControls();
+    addEventHandlers();
+    updateStatus(StatusUtilities.newInfoStatus("Please enter database details",
+        AppEngineCorePlugin.PLUGIN_ID));
+    return composite;
   }
 
   private void initializeControls() {
@@ -261,6 +216,37 @@ public class MySqlConfigure extends StatusDialog {
     databaseUser.setText(GoogleCloudSqlProperties.getMySqlDatabaseUser(project));
     databasePassword.setText(GoogleCloudSqlProperties.getMySqlDatabasePassword(project));
     jdbcJar.setText(GoogleCloudSqlProperties.getMySqlJdbcJar(project));
+  }
+
+  @Override
+  protected void okPressed() {
+    validateFields();
+    try {
+      GoogleCloudSqlProperties.setMySqlHostName(project,
+          hostName.getText().trim());
+      GoogleCloudSqlProperties.setMySqlDatabaseName(project,
+          databaseName.getText().trim());
+      GoogleCloudSqlProperties.setMySqlPort(project,
+          Integer.parseInt(port.getText().trim()));
+      GoogleCloudSqlProperties.setMySqlDatabaseUser(project,
+          databaseUser.getText().trim());
+      GoogleCloudSqlProperties.setMySqlDatabasePassword(project,
+          databasePassword.getText().trim());
+      GoogleCloudSqlProperties.setMySqlJdbcJar(project,
+          jdbcJar.getText().trim());
+      SqlConnectionExtensionPopulator.populateCloudSQLBridgeExtender(javaProject,
+          SqlConnectionExtensionPopulator.ConnectionType.CONNECTION_TYPE_LOCAL_MYSQL);
+      GoogleCloudSqlProperties.setMySqlIsConfigured(project, true);
+    } catch (NumberFormatException e) {
+      // This case is taken care by validateFields().
+      AppEngineCorePluginLog.logError(e,
+          "Incorrect port. Should have been taken care by validateFields()");
+    } catch (BackingStoreException e) {
+      AppEngineCorePluginLog.logError(e,
+          "Unable to save MySQL Configurations for local development Instance.");
+    }
+
+    super.okPressed();
   }
 
   private void validateFields() {

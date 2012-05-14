@@ -54,12 +54,8 @@ import org.eclipse.ui.dialogs.PreferencesUtil;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
-<<<<<<< .mine
 import java.util.GregorianCalendar;
 import java.util.List;
-=======
-import java.util.List;
->>>>>>> .r4
 import java.util.Map;
 import java.util.Scanner;
 
@@ -76,13 +72,6 @@ public class GoogleLogin {
       super(reason);
     }
   }
-<<<<<<< .mine
-=======
-
-  private static final String EXTERNAL_BROWSER_MSG = "An embedded browser could not be created for signing in. "
-      + "An external web browser has been launched instead. Please sign in using this browser, "
-      + "and enter the verification code here";
->>>>>>> .r4
 
   private static final String
       EXTERNAL_BROWSER_MSG =
@@ -90,17 +79,12 @@ public class GoogleLogin {
           + "An external web browser has been launched instead. Please sign in using this browser, "
           + "and enter the verification code here";
 
-<<<<<<< .mine
   private static final String
       GET_EMAIL_URL = "https://www.googleapis.com/userinfo/email";
 
   private static final String
       LOGIN_NOTIFICATION_EXTENSION_POINT = "loginListener";
 
-=======
-  private static final String LOGIN_NOTIFICATION_EXTENSION_POINT = "loginListener";
-
->>>>>>> .r4
   private static GoogleLogin instance;
 
   private static final JsonFactory jsonFactory = new JacksonFactory();
@@ -133,7 +117,6 @@ public class GoogleLogin {
   }
 
   private static void showNoBrowsersMessageDialog() {
-<<<<<<< .mine
     MessageDialog noBrowsersMd = new MessageDialog(Display.getDefault()
       .getActiveShell(),
         "No browsers found",
@@ -142,11 +125,6 @@ public class GoogleLogin {
         MessageDialog.ERROR,
         new String[] {"Ok"},
         0) {
-=======
-    MessageDialog noBrowsersMd = new MessageDialog(
-        Display.getDefault().getActiveShell(), "No browsers found", null, null,
-        MessageDialog.ERROR, new String[] {"Ok"}, 0) {
->>>>>>> .r4
 
         @Override
       protected Control createMessageArea(Composite parent) {
@@ -205,6 +183,17 @@ public class GoogleLogin {
     initializeOauthClientInfo();
   }
 
+  private boolean checkLoggedIn(String msg) {
+    if (!isLoggedIn) {
+      boolean rc = logIn(msg);
+      if (!rc) {
+        return false;
+      }
+      notifyTrim();
+    }
+    return true;
+  }
+
   /**
    * See {@link #createRequestFactory(String)}.
    */
@@ -233,7 +222,6 @@ public class GoogleLogin {
     }
     return transport.createRequestFactory(access);
   }
-<<<<<<< .mine
 
   /**
    * Makes a request to get an OAuth2 access token from the OAuth2 refresh token
@@ -259,9 +247,6 @@ public class GoogleLogin {
     return accessToken;
   }
 
-=======
-
->>>>>>> .r4
   public String fetchOAuth2ClientId() {
     return clientId;
   }
@@ -315,6 +300,31 @@ public class GoogleLogin {
     return email;
   }
 
+  private String getOAuthScopes() {
+
+    if (cachedOAuthScopes == null) {
+      cachedOAuthScopes = GoogleLoginUtils.queryOAuthScopeExtensions();
+    }
+
+    return cachedOAuthScopes;
+  }
+
+  private void initializeOauthClientInfo() {
+    ExtensionQuery<IClientProvider> extensionQuery = new ExtensionQuery<
+        IClientProvider>(
+        GoogleLoginPlugin.PLUGIN_ID, "oauthClientProvider", "class");
+    for (ExtensionQuery.Data<IClientProvider> data : extensionQuery.getData()) {
+      String id = data.getExtensionPointData().getId();
+      String secret = data.getExtensionPointData().getSecret();
+      if (!StringUtilities.isEmpty(id) && id.trim().length() > 0
+          && !StringUtilities.isEmpty(secret) && secret.trim().length() > 0) {
+        clientId = id;
+        clientSecret = secret;
+        return;
+      }
+    }
+  }
+
   /**
    * Returns true if the plugin was able to connect to the internet to try to ,
    * true if there were no stored credentials, and false if there were stored
@@ -329,6 +339,39 @@ public class GoogleLogin {
    */
   public boolean isLoggedIn() {
     return isLoggedIn;
+  }
+
+  protected void loadLogin() {
+
+    Credentials prefs = GoogleLoginPrefs.loadCredentials();
+
+    // the stored email can be null in the case where the external browser
+    // was launched, because we can't extract the email from the external
+    // browser
+    if (prefs.refreshToken == null || prefs.storedScopes == null) {
+      GoogleLoginPrefs.clearStoredCredentials();
+      return;
+    }
+
+    accessToken = prefs.accessToken;
+    refreshToken = prefs.refreshToken;
+    accessTokenExpiryTime = prefs.accessTokenExpiryTime;
+    this.email = prefs.storedEmail;
+
+    isLoggedIn = true;
+
+    if (!getOAuthScopes().equals(prefs.storedScopes)) {
+      GoogleLoginPlugin.logWarning(
+          "OAuth scope set for stored credentials no longer valid, logging out.");
+      logOut(false);
+    }
+
+    access = new GoogleAccessProtectedResource(accessToken,
+        transport,
+        jsonFactory,
+        clientId,
+        clientSecret,
+        refreshToken);
   }
 
   /**
@@ -449,53 +492,6 @@ public class GoogleLogin {
     return logOut(showPrompt, true);
   }
 
-  /**
-   * When the login trim is instantiated by the UI, it calls this method so that
-   * when logIn() is called by something other than the login trim itself, the
-   * login trim can be notified to update its UI.
-   *
-   * @param trim
-   */
-  public void setLoginTrimContribution(LoginTrimContribution trim) {
-    this.trim = trim;
-  }
-
-  private boolean checkLoggedIn(String msg) {
-    if (!isLoggedIn) {
-      boolean rc = logIn(msg);
-      if (!rc) {
-        return false;
-      }
-      notifyTrim();
-    }
-    return true;
-  }
-
-  private String getOAuthScopes() {
-
-    if (cachedOAuthScopes == null) {
-      cachedOAuthScopes = GoogleLoginUtils.queryOAuthScopeExtensions();
-    }
-
-    return cachedOAuthScopes;
-  }
-
-  private void initializeOauthClientInfo() {
-    ExtensionQuery<IClientProvider> extensionQuery = new ExtensionQuery<
-        IClientProvider>(
-        GoogleLoginPlugin.PLUGIN_ID, "oauthClientProvider", "class");
-    for (ExtensionQuery.Data<IClientProvider> data : extensionQuery.getData()) {
-      String id = data.getExtensionPointData().getId();
-      String secret = data.getExtensionPointData().getSecret();
-      if (!StringUtilities.isEmpty(id) && id.trim().length() > 0
-          && !StringUtilities.isEmpty(secret) && secret.trim().length() > 0) {
-        clientId = id;
-        clientSecret = secret;
-        return;
-      }
-    }
-  }
-
   private boolean logOut(boolean showPrompt, boolean doRevoke) {
 
     if (!isLoggedIn) {
@@ -519,7 +515,6 @@ public class GoogleLogin {
     }
     return false;
   }
-<<<<<<< .mine
 
   private void notifyLoginStatusChange(boolean login) {
     ExtensionQuery<LoginListener> extensionQuery = new ExtensionQuery<
@@ -533,20 +528,6 @@ public class GoogleLogin {
     }
   }
 
-=======
-
-  private void notifyLoginStatusChange(boolean login) {
-    ExtensionQuery<LoginListener> extensionQuery =
-        new ExtensionQuery<LoginListener>(
-            GoogleLoginPlugin.PLUGIN_ID, LOGIN_NOTIFICATION_EXTENSION_POINT, "class");
-
-    List<ExtensionQuery.Data<LoginListener>> loginListenerList = extensionQuery.getData();
-    for (ExtensionQuery.Data<LoginListener> loginListener : loginListenerList) {
-      loginListener.getExtensionPointData().statusChanged(login);
-    }
-  }
-
->>>>>>> .r4
   private void notifyTrim() {
     if (trim != null) {
       Display.getDefault().asyncExec(new Runnable() {
@@ -636,37 +617,15 @@ public class GoogleLogin {
     }
   }
 
-  protected void loadLogin() {
-
-    Credentials prefs = GoogleLoginPrefs.loadCredentials();
-
-    // the stored email can be null in the case where the external browser
-    // was launched, because we can't extract the email from the external
-    // browser
-    if (prefs.refreshToken == null || prefs.storedScopes == null) {
-      GoogleLoginPrefs.clearStoredCredentials();
-      return;
-    }
-
-    accessToken = prefs.accessToken;
-    refreshToken = prefs.refreshToken;
-    accessTokenExpiryTime = prefs.accessTokenExpiryTime;
-    this.email = prefs.storedEmail;
-
-    isLoggedIn = true;
-
-    if (!getOAuthScopes().equals(prefs.storedScopes)) {
-      GoogleLoginPlugin.logWarning(
-          "OAuth scope set for stored credentials no longer valid, logging out.");
-      logOut(false);
-    }
-
-    access = new GoogleAccessProtectedResource(accessToken,
-        transport,
-        jsonFactory,
-        clientId,
-        clientSecret,
-        refreshToken);
+  /**
+   * When the login trim is instantiated by the UI, it calls this method so that
+   * when logIn() is called by something other than the login trim itself, the
+   * login trim can be notified to update its UI.
+   *
+   * @param trim
+   */
+  public void setLoginTrimContribution(LoginTrimContribution trim) {
+    this.trim = trim;
   }
 
   protected void stop() {

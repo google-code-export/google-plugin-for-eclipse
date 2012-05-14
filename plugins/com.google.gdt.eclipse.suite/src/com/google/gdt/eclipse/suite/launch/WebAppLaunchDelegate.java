@@ -116,55 +116,6 @@ public class WebAppLaunchDelegate extends JavaLaunchDelegate {
     }
   }
 
-  @Override
-  public void launch(ILaunchConfiguration configuration, String mode,
-      ILaunch launch, IProgressMonitor monitor) throws CoreException {
-    if (!addVmArgs(configuration)) {
-      return;
-    }
-    try {
-      if (!ensureWarArgumentExistenceInCertainCases(configuration)) {
-        return;
-      }
-      IJavaProject javaProject = getJavaProject(configuration);
-      maybePublishModulesToWarDirectory(
-          configuration, monitor, javaProject, false);
-
-    } catch (Throwable t) {
-      // Play safely and continue launch
-      GdtPlugin.getLogger().logError(t,
-          "Could not ensure WAR argument existence for the unmanaged WAR project.");
-    }
-
-    // check if this launch uses -remoteUI. If not, then don't add this launch
-    // to the devmode view
-    boolean addLaunch = true;
-    if (launch != null) {
-      try {
-        List<String> args = LaunchConfigurationProcessorUtilities
-          .parseProgramArgs(launch.getLaunchConfiguration());
-        if (!args.contains(RemoteUiArgumentProcessor.ARG_REMOTE_UI)) {
-          addLaunch = false;
-        }
-      } catch (CoreException e1) {
-        GWTPluginLog.logError(e1);
-      }
-    }
-
-    if (addLaunch) {
-      /*
-       * Add the launch to the DevMode view. This is tightly coupled because at
-       * the time of ILaunchListener's changed callback, the launch's process
-       * does not have a command-line set. Unfortunately there isn't another
-       * listener to solve our needs, so we add this glue here.
-       */
-      WebAppDebugModel.getInstance()
-          .addOrReturnExistingLaunchConfiguration(launch, null, null);
-    }
-
-    super.launch(configuration, mode, launch, monitor);
-  }
-
   /**
    * @return Returns {@code}false if unsuccessful in adding the VM arguments and
    *         the launch should be cancelled.
@@ -220,7 +171,6 @@ public class WebAppLaunchDelegate extends JavaLaunchDelegate {
     vmArgs += " " + ARG_RDBMS_EXTRA_PROPERTIES + rdbmsExtraPropertiesValue;
     workingCopy.setAttribute(
         IJavaLaunchConfigurationConstants.ATTR_VM_ARGUMENTS, vmArgs);
-<<<<<<< .mine
     ILaunchConfiguration config = workingCopy.doSave();
     IPath path = config.getLocation();
     if ((path != null) && path.toFile().exists()) {
@@ -231,17 +181,6 @@ public class WebAppLaunchDelegate extends JavaLaunchDelegate {
             "Could not change permissions on the launch config file");
       }
     }
-=======
-    ILaunchConfiguration config = workingCopy.doSave();
-    IPath path = config.getLocation();
-    if ((path != null) && path.toFile().exists()) {
-      try {
-        Runtime.getRuntime().exec("chmod 600 " + path.toString());
-      } catch (IOException e) {
-        CorePluginLog.logError("Could not change permissions on the launch config file");
-      }
-    }
->>>>>>> .r4
     return true;
   }
 
@@ -330,5 +269,54 @@ public class WebAppLaunchDelegate extends JavaLaunchDelegate {
     }
 
     return false;
+  }
+
+  @Override
+  public void launch(ILaunchConfiguration configuration, String mode,
+      ILaunch launch, IProgressMonitor monitor) throws CoreException {
+    if (!addVmArgs(configuration)) {
+      return;
+    }
+    try {
+      if (!ensureWarArgumentExistenceInCertainCases(configuration)) {
+        return;
+      }
+      IJavaProject javaProject = getJavaProject(configuration);
+      maybePublishModulesToWarDirectory(
+          configuration, monitor, javaProject, false);
+
+    } catch (Throwable t) {
+      // Play safely and continue launch
+      GdtPlugin.getLogger().logError(t,
+          "Could not ensure WAR argument existence for the unmanaged WAR project.");
+    }
+
+    // check if this launch uses -remoteUI. If not, then don't add this launch
+    // to the devmode view
+    boolean addLaunch = true;
+    if (launch != null) {
+      try {
+        List<String> args = LaunchConfigurationProcessorUtilities
+          .parseProgramArgs(launch.getLaunchConfiguration());
+        if (!args.contains(RemoteUiArgumentProcessor.ARG_REMOTE_UI)) {
+          addLaunch = false;
+        }
+      } catch (CoreException e1) {
+        GWTPluginLog.logError(e1);
+      }
+    }
+
+    if (addLaunch) {
+      /*
+       * Add the launch to the DevMode view. This is tightly coupled because at
+       * the time of ILaunchListener's changed callback, the launch's process
+       * does not have a command-line set. Unfortunately there isn't another
+       * listener to solve our needs, so we add this glue here.
+       */
+      WebAppDebugModel.getInstance()
+          .addOrReturnExistingLaunchConfiguration(launch, null, null);
+    }
+
+    super.launch(configuration, mode, launch, monitor);
   }
 }

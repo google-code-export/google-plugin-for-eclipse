@@ -18,23 +18,12 @@ import com.google.appengine.eclipse.core.AppEngineCorePlugin;
 import com.google.appengine.eclipse.core.AppEngineCorePluginLog;
 import com.google.appengine.eclipse.core.datatools.SqlConnectionExtensionPopulator;
 import com.google.appengine.eclipse.core.nature.GaeNature;
-<<<<<<< .mine
 import com.google.appengine.eclipse.core.properties.GaeProjectProperties;
-=======
-import com.google.appengine.eclipse.core.properties.GaeProjectProperties;
-import com.google.appengine.eclipse.core.properties.GoogleCloudSqlProperties;
-import com.google.appengine.eclipse.core.properties.ui.GaeProjectPropertyPage;
->>>>>>> .r4
 import com.google.appengine.eclipse.core.resources.GaeProject;
-<<<<<<< .mine
 import com.google.appengine.eclipse.core.sdk.AppEngineBridge;
 import com.google.appengine.eclipse.core.sdk.AppEngineUpdateProjectSdkCommand;
-=======
-import com.google.appengine.eclipse.core.sdk.AppEngineUpdateProjectSdkCommand;
->>>>>>> .r4
 import com.google.appengine.eclipse.core.sdk.AppEngineUpdateWebInfFolderCommand;
 import com.google.appengine.eclipse.core.sdk.GaeSdk;
-import com.google.appengine.eclipse.core.sdk.GaeSdkCapability;
 import com.google.appengine.eclipse.core.sdk.GaeSdkContainer;
 import com.google.gdt.eclipse.core.WebAppUtilities;
 import com.google.gdt.eclipse.core.sdk.ClasspathContainerUpdateJob;
@@ -53,12 +42,7 @@ import org.eclipse.jdt.core.JavaCore;
 import org.osgi.service.prefs.BackingStoreException;
 
 import java.io.FileNotFoundException;
-<<<<<<< .mine
 import java.util.List;
-=======
-import java.io.IOException;
-import java.util.List;
->>>>>>> .r4
 
 /**
  * Contains static methods for retrieving and setting GAE plug-in preferences.
@@ -82,43 +66,18 @@ public final class GaePreferences {
             break;
           }
         }
-        GaeSdk newDefaultSdk = null;
-        List<SdkUpdate<GaeSdk>> sdkUpdates = sdkUpdateEvent.getUpdates();
-        for (SdkUpdate<GaeSdk> sdkUpdate : sdkUpdates) {
-          if (sdkUpdate.getType() == SdkUpdate.Type.NEW_DEFAULT) {
-            newDefaultSdk = sdkUpdate.getSdk();
-            break;
-          }
-        }
         for (IJavaProject project : projects) {
           if (!GaeNature.isGaeProject(project.getProject())) {
             continue;
           }
           GaeSdk sdk = null;
           try {
-<<<<<<< .mine
             if (GaeProjectProperties.getIsUseSdkFromDefault(project.getProject())) {
               sdk = newDefaultSdk;
             } else {
               GaeProject p = GaeProject.create(project.getProject());
               sdk = p.getSdk();
-=======
-            if (GaeProjectProperties.getIsUseSdkFromDefault(project.getProject())) {
-              sdk = newDefaultSdk;
-              // If a project has Google Cloud SQL enabled and the selected sdk
-              // is incompatible with Google Cloud SQL, we do nothing.
-              if (sdk != null
-                  && GoogleCloudSqlProperties.getGoogleCloudSqlEnabled(project.getProject())
-                  && GoogleCloudSqlProperties.getLocalDevMySqlEnabled(project.getProject())
-                  && sdk.getCapabilities().contains(GaeSdkCapability.GOOGLE_CLOUD_SQL)) {
-                GaeProjectPropertyPage.copyJdbcDriverJar(project, sdk);
-              }
-            } else {
-              GaeProject p = GaeProject.create(project.getProject());
-              sdk = p.getSdk();
->>>>>>> .r4
             }
-<<<<<<< .mine
             if (sdk != null && WebAppUtilities.hasManagedWarOut(project.getProject())) {
               UpdateType updateType = AppEngineUpdateProjectSdkCommand.computeUpdateType(
                   GaeSdk.findSdkFor(project), sdk,
@@ -133,23 +92,10 @@ public final class GaePreferences {
                   + AppEngineBridge.APPENGINE_CLOUD_SQL_JAR_PATH_IN_SDK
                   + AppEngineBridge.APPENGINE_CLOUD_SQL_JAR);
             }
-=======
-            if (sdk != null && WebAppUtilities.hasManagedWarOut(project.getProject())) {
-              UpdateType updateType = AppEngineUpdateProjectSdkCommand.computeUpdateType(
-                  GaeSdk.findSdkFor(project), sdk, 
-                  GaeProjectProperties.getIsUseSdkFromDefault(project.getProject()));
-              new AppEngineUpdateProjectSdkCommand(project, GaeSdk.findSdkFor(project), sdk, 
-                  updateType, null).execute();
-              new AppEngineUpdateWebInfFolderCommand(project, sdk).execute();
-            }
->>>>>>> .r4
           } catch (FileNotFoundException e) {
             // Log the error and continue
             AppEngineCorePluginLog.logError(e);
           } catch (BackingStoreException e) {
-            // Log the error and continue
-            AppEngineCorePluginLog.logError(e);
-          } catch (IOException e) {
             // Log the error and continue
             AppEngineCorePluginLog.logError(e);
           }
@@ -169,6 +115,12 @@ public final class GaePreferences {
   public static String getDeployEmailAddress() {
     return AppEngineCorePlugin.getDefault().getPluginPreferences().getString(
         GaePreferenceConstants.DEPLOY_EMAIL_ADDRESS);
+  }
+
+  private static IEclipsePreferences getEclipsePreferences() {
+    InstanceScope scope = new InstanceScope();
+    IEclipsePreferences workspacePrefs = scope.getNode(AppEngineCorePlugin.PLUGIN_ID);
+    return workspacePrefs;
   }
 
   public static SdkManager<GaeSdk> getSdkManager() {
@@ -202,12 +154,6 @@ public final class GaePreferences {
     } catch (CoreException e) {
       AppEngineCorePluginLog.logError(e);
     }
-  }
-
-  private static IEclipsePreferences getEclipsePreferences() {
-    InstanceScope scope = new InstanceScope();
-    IEclipsePreferences workspacePrefs = scope.getNode(AppEngineCorePlugin.PLUGIN_ID);
-    return workspacePrefs;
   }
 
   private GaePreferences() {

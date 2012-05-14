@@ -18,7 +18,6 @@ import com.google.gdt.eclipse.core.CorePlugin;
 import com.google.gdt.eclipse.core.CorePluginLog;
 import com.google.gdt.eclipse.core.extensions.ExtensionQuery;
 
-<<<<<<< .mine
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.ProjectScope;
 import org.eclipse.core.runtime.CoreException;
@@ -31,15 +30,6 @@ import org.eclipse.wst.common.project.facet.core.ProjectFacetsManager;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-=======
-import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.ProjectScope;
-import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.QualifiedName;
-import org.eclipse.core.runtime.preferences.IEclipsePreferences;
-import org.eclipse.core.runtime.preferences.IScopeContext;
-
->>>>>>> .r4
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -93,7 +83,7 @@ public class UpdateQueryBuilder {
    * The argument to add to the &action= param. May be null.
    */
   private String action;
-  
+
   /**
    * If this is for an api add ping, then the name of the api added.
    */
@@ -113,37 +103,23 @@ public class UpdateQueryBuilder {
    * The hash of the GAE app's ID, if applicable.
    */
   private String gaeAppIdHash;
-
+  
   /**
    * The installation id.
    */
   private String installationId;
   
   private Map<String, String> maxSdkVersions;
-<<<<<<< .mine
-  
   /**
    * Stores count of RPC layers used if Gae Project is App Engine Connected Android Project.
    */
   private String rpcLayerCount;
-  /**
-   * Stores info about Google cloud sql usage.
-   */
-  private boolean isGoogleCloudSqlUsed;
-=======
-  
-  /**
-   * Stores count of RPC layers used if Gae Project is App Engine Connected Android Project.
-   */
-  private String rpcLayerCount;
-  
-  /**
-   * Stores info about Google cloud sql usage.
-   */
-  private boolean isGoogleCloudSqlUsed;
-  private boolean isGoogleCloudSqlUsedWithMysql;
->>>>>>> .r4
 
+  /**
+   * Stores info about Google cloud sql usage.
+   */
+  private boolean isGoogleCloudSqlUsed;
+  
   private boolean isGoogleCloudSqlUsedWithMysql;
   
   /**
@@ -151,11 +127,6 @@ public class UpdateQueryBuilder {
    * "brands" of Eclipse, eg "normal" eclipse and STS.
    */
   private String productId;
-  
-  public UpdateQueryBuilder() {
-    isGoogleCloudSqlUsed = false;
-    isGoogleCloudSqlUsedWithMysql = false;
-  }
   
 
   /**
@@ -254,13 +225,14 @@ public class UpdateQueryBuilder {
       CorePluginLog.logError(e);
     }
   }
-
+  
   /**
    * Sets if this query is a gae deploy ping.
    */
   public void setAction(String action) {
     this.action = action;
   }
+  
 
   /**
    * @param apiName
@@ -277,7 +249,7 @@ public class UpdateQueryBuilder {
   public void setEclipseVersion(String eclipseVersion) {
     this.eclipseVersion = eclipseVersion;
   }
-
+  
   /**
    * Sets the feature version component.
    * 
@@ -286,7 +258,7 @@ public class UpdateQueryBuilder {
   public void setFeatureVersion(String featureVersion) {
     this.featureVersion = featureVersion;
   }
-  
+
 
   /**
    * Calculates and stores the hash of the app id of the project if the given
@@ -296,6 +268,7 @@ public class UpdateQueryBuilder {
     this.gaeAppIdHash = hash;
   }
   
+
   /**
    * Sets the installation id.
    * 
@@ -308,8 +281,7 @@ public class UpdateQueryBuilder {
   public void setMaxSdkVersions(Map<String, String> maxSdkVersions) {
     this.maxSdkVersions = maxSdkVersions;
   }
-
-
+  
   /**
    * Sets the product ID to differentiate different branded versions of eclipse,
    * eg, STS is com.springsource.sts.ide while regular eclipse is
@@ -318,60 +290,6 @@ public class UpdateQueryBuilder {
   public void setProductId(String productId) {
     this.productId = productId;
   }
-  
-
-  /**
-   * Retrieves count of RPC layers used if Gae Project is App Engine Connected Android Project.
-   */
-  public synchronized void retrieveRPCLayerCount(IProject project) {
-    try {
-      rpcLayerCount = project.getPersistentProperty(new QualifiedName(CorePlugin.PLUGIN_ID, 
-          "gaeConnectedAndroidProject"));
-    } catch (CoreException e) {
-      CorePluginLog.logError(e);
-    }
-  }
-  
-  /**
-   * Stores count of RPC layers used if Gae Project is App Engine Connected Android Project.
-   */
-  public static synchronized void incrementRPCLayerCount(IProject project, Boolean initialize) {
-    try {
-      String rpcLayerCountString = 
-          project.getPersistentProperty(new QualifiedName(CorePlugin.PLUGIN_ID, 
-              "gaeConnectedAndroidProject"));
-      int rpcLayerCountInt = 0;
-      if (!initialize) {
-        if (rpcLayerCountString == null) {
-          return;          
-        } else {
-          rpcLayerCountInt = Integer.parseInt(rpcLayerCountString) + 1;
-        }
-      }
-      rpcLayerCountString = Integer.toString(rpcLayerCountInt);
-      project.setPersistentProperty(new QualifiedName(CorePlugin.PLUGIN_ID,
-          "gaeConnectedAndroidProject"), rpcLayerCountString);
-    } catch (CoreException e) {
-      CorePluginLog.logError(e);
-    }
-  }
-  
-  /**
-  * Retrieves info about Google cloud sql usage.
-  */
- public void retrieveGoogleCloudSqlUsage(IProject project) {
-   IScopeContext projectScope = new ProjectScope(project);
-   IEclipsePreferences prefs = projectScope.getNode(APP_ENGINE_CORE_PLUGIN_ID);
-   if (prefs == null) {
-     CorePluginLog.logError("retrieveGoogleCloudSqlUsage: No appEngineCorePluginID preferences");
-     return;
-   }
-
-   if (prefs.getBoolean("googleCloudSqlEnabled", false)) {
-     isGoogleCloudSqlUsed = true;
-     isGoogleCloudSqlUsedWithMysql = prefs.getBoolean("localDevMySqlEnabled", false);
-   }
- }
 
 
   /**
@@ -418,7 +336,6 @@ public class UpdateQueryBuilder {
       sb.append(apiName);
     }
     
-<<<<<<< .mine
     if (rpcLayerCount != null) {
       sb.append("&rpcLayerCount=");
       sb.append(rpcLayerCount);
@@ -432,43 +349,14 @@ public class UpdateQueryBuilder {
         sb.append(isGoogleCloudSqlUsedWithMysql);
       }
     }
-=======
-    if (rpcLayerCount != null) {
-      sb.append("&rpcLayerCount=");
-      sb.append(rpcLayerCount);
-    }
-    
-    if (action != null){
-      sb.append("&isGoogleCloudSqlUsed=");
-      sb.append(isGoogleCloudSqlUsed);
-      if (isGoogleCloudSqlUsed) {
-        sb.append("&isGoogleCloudSqlUsedWithMysql=");
-        sb.append(isGoogleCloudSqlUsedWithMysql);
-      }
-    }
-      
-    
-    addExtentionContributions(sb);
->>>>>>> .r4
 
     if (facetsEnabled != null) {
       sb.append("&facets=");
       sb.append(facetsEnabled);
     }
 
-<<<<<<< .mine
     if (extensionContribs != null) {
       sb.append(extensionContribs);
-=======
-  private void addExtentionContributions(StringBuilder sb) {
-    ExtensionQuery<UpdateQueryArgContributor> extQuery = 
-        new ExtensionQuery<UpdateQueryArgContributor>(CorePlugin.PLUGIN_ID, 
-                                                     "updateQueryArgContributor", "class");
-    List<ExtensionQuery.Data<UpdateQueryArgContributor>> contributors = extQuery.getData();
-    for (ExtensionQuery.Data<UpdateQueryArgContributor> c : contributors) {
-      UpdateQueryArgContributor uqac = c.getExtensionPointData();
-      sb.append(uqac.getContribution());
->>>>>>> .r4
     }
       
     return sb.toString();

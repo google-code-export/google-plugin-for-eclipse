@@ -274,10 +274,25 @@ public class GaeSdk extends AbstractSdk {
     super(name, location);
   }
 
+  private Set<GaeSdkCapability> doGetCapabilities() {
+    if (!validate().isOK()) {
+      return Collections.emptySet();
+    }
+
+    Set<GaeSdkCapability> caps = EnumSet.noneOf(GaeSdkCapability.class);
+    for (GaeSdkCapability capability : GaeSdkCapability.values()) {
+      if (capability.check(this)) {
+        caps.add(capability);
+      }
+    }
+
+    return caps;
+  }
+
   public AppEngineBridge getAppEngineBridge() throws CoreException {
     return AppEngineBridgeFactory.getAppEngineBridge(getInstallationPath());
   }
-
+  
   public AppEngineBridge getAppEngineBridgeForDeploy() throws CoreException {
     /**
      * GAE SDK 1.4.3 includes support for deploying to appengine using oauth
@@ -291,7 +306,7 @@ public class GaeSdk extends AbstractSdk {
       return AppEngineBridgeFactory.createBridgeWithBundledToolsJar(getInstallationPath());
     }
   }
-  
+
   /**
    * 
    * Returns the set of capabilities supported by this SDK.
@@ -347,7 +362,7 @@ public class GaeSdk extends AbstractSdk {
       return NO_ICLASSPATH_ENTRIES;
     }
   }
-
+  
   public String getVersion() {
     try {
       AppEngineBridge bridge = getAppEngineBridge();
@@ -357,11 +372,10 @@ public class GaeSdk extends AbstractSdk {
       return "";
     }
   }
-  
+
   public File[] getWebAppClasspathFiles(IProject project) {
     try {
       AppEngineBridge appEngineBridge = AppEngineBridgeFactory.getAppEngineBridge(getInstallationPath());
-<<<<<<< .mine
       List<File> userLibFiles = new ArrayList<File>(appEngineBridge.getUserLibFiles());
       if (!GaeProjectProperties.getGaeDatanucleusEnabled(project)) {
         for (File file : appEngineBridge.getUserLibFiles()) {
@@ -371,24 +385,6 @@ public class GaeSdk extends AbstractSdk {
         }
       }
 
-=======
-      List<File> userLibFiles = new ArrayList<File>(appEngineBridge.getUserLibFiles());
-      if (!GaeProjectProperties.getGaeDatanucleusEnabled(project)) {
-        for (File file : appEngineBridge.getUserLibFiles()) {
-          if (GAE_DATANUCLEUS_FILES.contains(file.getName())) {
-            userLibFiles.remove(file);
-          }
-        }
-      }
-
-      if (getCapabilities().contains(GaeSdkCapability.GOOGLE_CLOUD_SQL)) {
-        String filePath = getInstallationPath() +  
-            AppEngineBridge.APPENGINE_CLOUD_SQL_JAR_PATH_IN_SDK +
-            AppEngineBridge.APPENGINE_CLOUD_SQL_JAR;
-        userLibFiles.add(new File(filePath));
-      }
-
->>>>>>> .r4
       return userLibFiles.toArray(NO_FILES);
     } catch (CoreException e) {
       // Validate method will tell you what is wrong.
@@ -429,20 +425,5 @@ public class GaeSdk extends AbstractSdk {
       return new Status(IStatus.ERROR, AppEngineCorePlugin.PLUGIN_ID,
           e.getLocalizedMessage(), e);
     }
-  }
-
-  private Set<GaeSdkCapability> doGetCapabilities() {
-    if (!validate().isOK()) {
-      return Collections.emptySet();
-    }
-
-    Set<GaeSdkCapability> caps = EnumSet.noneOf(GaeSdkCapability.class);
-    for (GaeSdkCapability capability : GaeSdkCapability.values()) {
-      if (capability.check(this)) {
-        caps.add(capability);
-      }
-    }
-
-    return caps;
   }
 }

@@ -145,6 +145,11 @@ public final class GoogleCloudSqlProperties {
     return prefs.getBoolean(PROD_IS_CONFIGURED, false);
   }
 
+  private static IEclipsePreferences getProjectProperties(IProject project) {
+    IScopeContext projectScope = new ProjectScope(project);
+    return projectScope.getNode(AppEngineCorePlugin.PLUGIN_ID);
+  }
+
   public static String getTestDatabaseName(IProject project) {
     IEclipsePreferences prefs = getProjectProperties(project);
     return prefs.get(TEST_DATABASE_NAME, "");
@@ -167,69 +172,9 @@ public final class GoogleCloudSqlProperties {
 
   public static boolean getTestIsConfigured(IProject project) {
     IEclipsePreferences prefs = getProjectProperties(project);
-<<<<<<< .mine
-    return prefs.getBoolean(TEST_IS_CONFIGURED, false);
-=======
     return prefs.getBoolean(TEST_IS_CONFIGURED, false);
   }
 
-  public static void jobSetGoogleCloudSqlCopiedJdbcDriverPath(final IProject project,
-      final String cloudSqlJdbcPath) {
-    Job job = new WorkspaceJob(GaeProjectProperties.PREFERENCES_JOB_NAME) {
-      @Override
-      public IStatus runInWorkspace(IProgressMonitor monitor) {
-        try {
-          setGoogleCloudSqlCopiedJdbcDriverPath(project, cloudSqlJdbcPath);
-          return Status.OK_STATUS;
-        } catch (BackingStoreException e) {
-          return StatusUtilities.newErrorStatus(e, AppEngineCorePlugin.PLUGIN_ID);
-        }
-      }
-    };
-    GaeProjectProperties.startWorkspaceJob(job, project);
-  }
-
-  public static void jobSetGoogleCloudSqlEnabled(final IProject project,
-      final boolean cloudSqlEnabled) {
-    Job job = new WorkspaceJob(GaeProjectProperties.PREFERENCES_JOB_NAME) {
-      @Override
-      public IStatus runInWorkspace(IProgressMonitor monitor) {
-        try {
-          setGoogleCloudSqlEnabled(project, cloudSqlEnabled);
-          return Status.OK_STATUS;
-        } catch (BackingStoreException e) {
-          return StatusUtilities.newErrorStatus(e, AppEngineCorePlugin.PLUGIN_ID);
-        }
-      }
-    };
-    GaeProjectProperties.startWorkspaceJob(job, project);
-  }
-
-  public static void jobSetLocalDevMySqlEnabled(final IProject project,
-      final boolean isDevMySqlEnabled) {
-    Job job = new WorkspaceJob(GaeProjectProperties.PREFERENCES_JOB_NAME) {
-      @Override
-      public IStatus runInWorkspace(IProgressMonitor monitor) {
-        try {
-          setLocalDevMySqlEnabled(project, isDevMySqlEnabled);
-          return Status.OK_STATUS;
-        } catch (BackingStoreException e) {
-          return StatusUtilities.newErrorStatus(e, AppEngineCorePlugin.PLUGIN_ID);
-        }
-      }
-    };
-    GaeProjectProperties.startWorkspaceJob(job, project);
-  }
-
-  public static void setGoogleCloudSqlCopiedJdbcDriverPath(IProject project, String path)
-      throws BackingStoreException {
-    IEclipsePreferences prefs = getProjectProperties(project);
-    prefs.put(GOOGLE_CLOUD_SQL_COPIED_JDBC_DRIVER_PATH, path);
-    prefs.flush();
->>>>>>> .r4
-  }
-
-<<<<<<< .mine
   public static void jobSetGoogleCloudSqlEnabled(
       final IProject project, final boolean cloudSqlEnabled) {
     Job job = new WorkspaceJob(GaeProjectProperties.PREFERENCES_JOB_NAME) {
@@ -264,10 +209,6 @@ public final class GoogleCloudSqlProperties {
 
   public static void setGoogleCloudSqlEnabled(IProject project, Boolean googleCloudSqlEnabled)
       throws BackingStoreException {
-=======
-  public static void setGoogleCloudSqlEnabled(IProject project, Boolean googleCloudSqlEnabled)
-      throws BackingStoreException {
->>>>>>> .r4
     IEclipsePreferences prefs = getProjectProperties(project);
     prefs.put(GOOGLE_CLOUD_SQL_ENABLED, googleCloudSqlEnabled.toString());
     prefs.flush();
@@ -394,11 +335,6 @@ public final class GoogleCloudSqlProperties {
     IEclipsePreferences prefs = getProjectProperties(project);
     prefs.put(TEST_IS_CONFIGURED, isConfigured.toString());
     prefs.flush();
-  }
-
-  private static IEclipsePreferences getProjectProperties(IProject project) {
-    IScopeContext projectScope = new ProjectScope(project);
-    return projectScope.getNode(AppEngineCorePlugin.PLUGIN_ID);
   }
 
   private GoogleCloudSqlProperties() {

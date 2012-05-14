@@ -115,21 +115,7 @@ public class WebAppProjectCreator implements IWebAppProjectCreator {
     }
   };
 
-  static String generateClassName(String projectName) {
-    return StringUtilities.capitalize(sanitizeProjectName(projectName));
-  }
-
-  static String generateServletClassName(String projectName) {
-    return generateClassName(projectName) + "Servlet";
-  }
-
-  static String generateServletName(String projectName) {
-    return StringUtilities.capitalize(sanitizeProjectName(projectName));
-  }
-
-  static String generateServletPath(String projectName) {
-    return generateServletName(projectName).toLowerCase();
-  }
+  private static final String FACET_JST_JAVA = "jst.java";
 
   /**
    * Deletes all files with a .launch extension located in the specified
@@ -165,6 +151,22 @@ public class WebAppProjectCreator implements IWebAppProjectCreator {
     if (buildScript.exists()) {
       buildScript.delete();
     }
+  }
+
+  static String generateClassName(String projectName) {
+    return StringUtilities.capitalize(sanitizeProjectName(projectName));
+  }
+
+  static String generateServletClassName(String projectName) {
+    return generateClassName(projectName) + "Servlet";
+  }
+
+  static String generateServletName(String projectName) {
+    return StringUtilities.capitalize(sanitizeProjectName(projectName));
+  }
+
+  static String generateServletPath(String projectName) {
+    return generateServletName(projectName).toLowerCase();
   }
 
   /**
@@ -242,12 +244,10 @@ public class WebAppProjectCreator implements IWebAppProjectCreator {
   private boolean isAppsMarketplaceSupported;
 
   private String[] templateSources;
-
-  private boolean isGenerateEmptyProject;
   
-  private boolean isUseGaeSdkFromDefault;
+  private boolean isGenerateEmptyProject;
 
-  private static final String FACET_JST_JAVA = "jst.java";
+  private boolean isUseGaeSdkFromDefault;
 
   protected WebAppProjectCreator() {
     // Always a java project
@@ -424,111 +424,6 @@ public class WebAppProjectCreator implements IWebAppProjectCreator {
     jobSetupFacets(project);
   }
 
-  public List<IPath> getContainerPaths() {
-    return containerPaths;
-  }
-
-  public List<FileInfo> getFileInfos() {
-    return fileInfos;
-  }
-
-  public URI getLocationURI() {
-    return locationURI;
-  }
-
-  public List<String> getNatureIds() {
-    return natureIds;
-  }
-
-  public String getPackageName() {
-    return packageName;
-  }
-
-  public String getProjectName() {
-    return projectName;
-  }
-
-  public String[] getTemplates() {
-    String[] result;
-    if (templates != null) {
-      result = new String[templates.length];
-      System.arraycopy(templates, 0, result, 0, templates.length);
-    } else {
-      result = null;
-    }
-    return result;
-  }
-
-  public String[] getTemplateSources() {
-    String[] result;
-    if (templateSources != null) {
-      result = new String[templateSources.length];
-      System.arraycopy(templateSources, 0, result, 0, templateSources.length);
-    } else {
-      result = null;
-    }
-    return result;
-  }
-
-  public void setAppsMarketplaceSupported(boolean isAppsMarketplaceSupported) {
-    this.isAppsMarketplaceSupported = isAppsMarketplaceSupported;
-  }
-
-  public void setContainerPaths(List<IPath> containerPaths) {
-    this.containerPaths = containerPaths;
-  }
-
-  public void setGenerateEmptyProject(boolean generateEmptyProject) {
-    this.isGenerateEmptyProject = generateEmptyProject;
-  }
-
-  public void setIsGaeSdkFromEclipseDefault(boolean gaeSdkIsEclipseDefault) {
-    this.isUseGaeSdkFromDefault = gaeSdkIsEclipseDefault;
-  }
-
-  public void setLocationURI(URI locationURI) {
-    this.locationURI = locationURI;
-  }
-
-  public void setNatureIds(List<String> natureIds) {
-    this.natureIds = natureIds;
-  }
-
-  public void setPackageName(String packageName) {
-    this.packageName = packageName;
-  }
-
-  public void setProjectName(String projectName) {
-    this.projectName = projectName;
-  }
-
-  public void setTemplates(String... templates) {
-    if (templates == null) {
-      this.templates = null;
-    } else {
-      this.templates = new String[templates.length];
-      System.arraycopy(templates, 0, this.templates, 0, templates.length);
-    }
-  }
-
-  public void setTemplateSources(String... templateSources) {
-    if (templateSources == null) {
-      this.templateSources = null;
-    } else {
-      this.templateSources = new String[templateSources.length];
-      System.arraycopy(templateSources, 0, this.templateSources, 0,
-          templateSources.length);
-    }
-  }
-<<<<<<< .mine
- 
-=======
- 
-  public void setIsGaeSdkFromEclipseDefault(boolean gaeSdkIsEclipseDefault) {
-    this.isUseGaeSdkFromDefault = gaeSdkIsEclipseDefault;
-  }
-
->>>>>>> .r4
   protected void createFiles(IProject project, IProgressMonitor monitor)
       throws CoreException, UnsupportedEncodingException {
     for (FileInfo fileInfo : fileInfos) {
@@ -618,90 +513,6 @@ public class WebAppProjectCreator implements IWebAppProjectCreator {
           GaeProjectResources.createSampleServletSource(servletPackageName,
               servletSimpleClassName));
     }
-  }
-
-  protected void createLaunchConfig(IProject project) throws CoreException {
-    ILaunchConfigurationWorkingCopy wc = WebAppLaunchUtil.createLaunchConfigWorkingCopy(
-        project.getName(), project,
-        WebAppLaunchUtil.determineStartupURL(project, false), false);
-    ILaunchGroup[] groups = DebugUITools.getLaunchGroups();
-
-    ArrayList<String> groupsNames = new ArrayList<String>();
-    for (ILaunchGroup group : groups) {
-      if (IDebugUIConstants.ID_DEBUG_LAUNCH_GROUP.equals(group.getIdentifier())
-          || IDebugUIConstants.ID_RUN_LAUNCH_GROUP.equals(group.getIdentifier())) {
-        groupsNames.add(group.getIdentifier());
-      }
-    }
-
-    wc.setAttribute(IDebugUIConstants.ATTR_FAVORITE_GROUPS, groupsNames);
-    wc.doSave();
-  }
-
-  protected IProject createProject(IProgressMonitor monitor)
-      throws CoreException {
-    IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
-    IProject project = workspaceRoot.getProject(projectName);
-    if (!project.exists()) {
-      URI uri;
-      if (isWorkspaceRootLocationURI(locationURI)) {
-        // If you want to put a project in the workspace root then the location
-        // needs to be null...
-        uri = null;
-      } else {
-        // Non-default paths need to include the project name
-        IPath path = URIUtil.toPath(locationURI).append(projectName);
-        uri = URIUtil.toURI(path);
-      }
-
-      BuildPathsBlock.createProject(project, uri, monitor);
-    }
-    return project;
-  }
-
-  protected IPath findContainerPath(String containerId) {
-    for (IPath containerPath : containerPaths) {
-      if (SdkClasspathContainer.isContainerPath(containerId, containerPath)) {
-        return containerPath;
-      }
-    }
-    return null;
-  }
-
-  protected Sdk getGaeSdk() {
-    return getSdk(GaeSdkContainer.CONTAINER_ID, GaePreferences.getSdkManager());
-  }
-
-  protected Sdk getGWTSdk() {
-    return getSdk(GWTRuntimeContainer.CONTAINER_ID,
-        GWTPreferences.getSdkManager());
-  }
-
-  protected void setProjectClasspath(IJavaProject javaProject,
-      IFolder srcFolder, IProgressMonitor monitor) throws JavaModelException {
-    List<IClasspathEntry> classpathEntries = new ArrayList<IClasspathEntry>();
-    classpathEntries.add(JavaCore.newSourceEntry(srcFolder.getFullPath()));
-
-    // Add the "test" folder as a src path, if it exists
-    IProject project = javaProject.getProject();
-    IFolder testFolder = project.getFolder("test");
-    if (testFolder.exists()) {
-      classpathEntries.add(JavaCore.newSourceEntry(testFolder.getFullPath(),
-          new IPath[0], project.getFullPath().append("test-classes")));
-    }
-
-    // Add our container entries to the path
-    for (IPath containerPath : containerPaths) {
-      classpathEntries.add(JavaCore.newContainerEntry(containerPath));
-    }
-
-    classpathEntries.addAll(Arrays.asList(PreferenceConstants.getDefaultJRELibrary()));
-    if (isAppsMarketplaceSupported) {
-      classpathEntries.addAll(Arrays.asList(
-          new AppsMarketplaceSdk().getClasspathEntriesFromWebInfLib(project)));
-    }
-    javaProject.setRawClasspath(
-        classpathEntries.toArray(new IClasspathEntry[0]), monitor);
   }
 
   private void createGWTProject(IProgressMonitor monitor, String packageName,
@@ -811,12 +622,93 @@ public class WebAppProjectCreator implements IWebAppProjectCreator {
     }
   }
 
+  protected void createLaunchConfig(IProject project) throws CoreException {
+    ILaunchConfigurationWorkingCopy wc = WebAppLaunchUtil.createLaunchConfigWorkingCopy(
+        project.getName(), project,
+        WebAppLaunchUtil.determineStartupURL(project, false), false);
+    ILaunchGroup[] groups = DebugUITools.getLaunchGroups();
+
+    ArrayList<String> groupsNames = new ArrayList<String>();
+    for (ILaunchGroup group : groups) {
+      if (IDebugUIConstants.ID_DEBUG_LAUNCH_GROUP.equals(group.getIdentifier())
+          || IDebugUIConstants.ID_RUN_LAUNCH_GROUP.equals(group.getIdentifier())) {
+        groupsNames.add(group.getIdentifier());
+      }
+    }
+
+    wc.setAttribute(IDebugUIConstants.ATTR_FAVORITE_GROUPS, groupsNames);
+    wc.doSave();
+  }
+
+  protected IProject createProject(IProgressMonitor monitor)
+      throws CoreException {
+    IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
+    IProject project = workspaceRoot.getProject(projectName);
+    if (!project.exists()) {
+      URI uri;
+      if (isWorkspaceRootLocationURI(locationURI)) {
+        // If you want to put a project in the workspace root then the location
+        // needs to be null...
+        uri = null;
+      } else {
+        // Non-default paths need to include the project name
+        IPath path = URIUtil.toPath(locationURI).append(projectName);
+        uri = URIUtil.toURI(path);
+      }
+
+      BuildPathsBlock.createProject(project, uri, monitor);
+    }
+    return project;
+  }
+
+  protected IPath findContainerPath(String containerId) {
+    for (IPath containerPath : containerPaths) {
+      if (SdkClasspathContainer.isContainerPath(containerId, containerPath)) {
+        return containerPath;
+      }
+    }
+    return null;
+  }
+
   private boolean generateAppsMarketplaceSampleApp() {
     boolean useGwt = natureIds.contains(GWTNature.NATURE_ID);
     boolean useGae = natureIds.contains(GaeNature.NATURE_ID);
     return !isGenerateEmptyProject && useGae && !useGwt;
   }
-  
+
+  public List<IPath> getContainerPaths() {
+    return containerPaths;
+  }
+
+  public List<FileInfo> getFileInfos() {
+    return fileInfos;
+  }
+
+  protected Sdk getGaeSdk() {
+    return getSdk(GaeSdkContainer.CONTAINER_ID, GaePreferences.getSdkManager());
+  }
+
+  protected Sdk getGWTSdk() {
+    return getSdk(GWTRuntimeContainer.CONTAINER_ID,
+        GWTPreferences.getSdkManager());
+  }
+
+  public URI getLocationURI() {
+    return locationURI;
+  }
+
+  public List<String> getNatureIds() {
+    return natureIds;
+  }
+
+  public String getPackageName() {
+    return packageName;
+  }
+
+  public String getProjectName() {
+    return projectName;
+  }
+
   private Sdk getSdk(String containerId, SdkManager<? extends Sdk> sdkManager) {
     Sdk sdk = null;
     IPath gaeContainerPath = findContainerPath(containerId);
@@ -825,6 +717,28 @@ public class WebAppProjectCreator implements IWebAppProjectCreator {
     }
 
     return sdk;
+  }
+
+  public String[] getTemplates() {
+    String[] result;
+    if (templates != null) {
+      result = new String[templates.length];
+      System.arraycopy(templates, 0, result, 0, templates.length);
+    } else {
+      result = null;
+    }
+    return result;
+  }
+
+  public String[] getTemplateSources() {
+    String[] result;
+    if (templateSources != null) {
+      result = new String[templateSources.length];
+      System.arraycopy(templateSources, 0, result, 0, templateSources.length);
+    } else {
+      result = null;
+    }
+    return result;
   }
 
   private void jobSetupFacets(final IProject project) {
@@ -854,12 +768,90 @@ public class WebAppProjectCreator implements IWebAppProjectCreator {
     setupFacetsJob.schedule();
   }
 
+  public void setAppsMarketplaceSupported(boolean isAppsMarketplaceSupported) {
+    this.isAppsMarketplaceSupported = isAppsMarketplaceSupported;
+  }
+
+  public void setContainerPaths(List<IPath> containerPaths) {
+    this.containerPaths = containerPaths;
+  }
+
   private void setGaeDefaults(IJavaProject javaProject) throws BackingStoreException {
     GaeSdk sdk = (GaeSdk) getGaeSdk();
 
     // Enable HRD by default for new projects, if supported.
     if (sdk != null && sdk.getCapabilities().contains(GaeSdkCapability.HRD)) {
       GaeProjectProperties.setGaeHrdEnabled(javaProject.getProject(), true);
+    }
+  }
+
+  public void setGenerateEmptyProject(boolean generateEmptyProject) {
+    this.isGenerateEmptyProject = generateEmptyProject;
+  }
+
+  public void setIsGaeSdkFromEclipseDefault(boolean gaeSdkIsEclipseDefault) {
+    this.isUseGaeSdkFromDefault = gaeSdkIsEclipseDefault;
+  }
+
+  public void setLocationURI(URI locationURI) {
+    this.locationURI = locationURI;
+  }
+
+  public void setNatureIds(List<String> natureIds) {
+    this.natureIds = natureIds;
+  }
+
+  public void setPackageName(String packageName) {
+    this.packageName = packageName;
+  }
+
+  protected void setProjectClasspath(IJavaProject javaProject,
+      IFolder srcFolder, IProgressMonitor monitor) throws JavaModelException {
+    List<IClasspathEntry> classpathEntries = new ArrayList<IClasspathEntry>();
+    classpathEntries.add(JavaCore.newSourceEntry(srcFolder.getFullPath()));
+
+    // Add the "test" folder as a src path, if it exists
+    IProject project = javaProject.getProject();
+    IFolder testFolder = project.getFolder("test");
+    if (testFolder.exists()) {
+      classpathEntries.add(JavaCore.newSourceEntry(testFolder.getFullPath(),
+          new IPath[0], project.getFullPath().append("test-classes")));
+    }
+
+    // Add our container entries to the path
+    for (IPath containerPath : containerPaths) {
+      classpathEntries.add(JavaCore.newContainerEntry(containerPath));
+    }
+
+    classpathEntries.addAll(Arrays.asList(PreferenceConstants.getDefaultJRELibrary()));
+    if (isAppsMarketplaceSupported) {
+      classpathEntries.addAll(Arrays.asList(
+          new AppsMarketplaceSdk().getClasspathEntriesFromWebInfLib(project)));
+    }
+    javaProject.setRawClasspath(
+        classpathEntries.toArray(new IClasspathEntry[0]), monitor);
+  }
+  
+  public void setProjectName(String projectName) {
+    this.projectName = projectName;
+  }
+
+  public void setTemplates(String... templates) {
+    if (templates == null) {
+      this.templates = null;
+    } else {
+      this.templates = new String[templates.length];
+      System.arraycopy(templates, 0, this.templates, 0, templates.length);
+    }
+  }
+
+  public void setTemplateSources(String... templateSources) {
+    if (templateSources == null) {
+      this.templateSources = null;
+    } else {
+      this.templateSources = new String[templateSources.length];
+      System.arraycopy(templateSources, 0, this.templateSources, 0,
+          templateSources.length);
     }
   }
 }

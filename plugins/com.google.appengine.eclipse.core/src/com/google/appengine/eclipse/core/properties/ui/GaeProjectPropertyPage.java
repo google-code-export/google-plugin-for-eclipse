@@ -81,7 +81,6 @@ import org.eclipse.ui.dialogs.PreferencesUtil;
 import org.osgi.service.prefs.BackingStoreException;
 
 import java.io.FileNotFoundException;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -91,15 +90,6 @@ import java.util.List;
  */
 @SuppressWarnings("restriction")
 public class GaeProjectPropertyPage extends AbstractProjectPropertyPage {
-
-  /**
-   * Interface to allow extension points to determine whether this project is
-   * eligible for GAE SDK selection.
-   *
-   */
-  public interface GaeSdkSelectionEnablementFinder {
-    boolean shouldEnableGaeSdkSelection(IProject project);
-  }
 
   /**
    * We use this dummy subclass to read the application ID and version from a
@@ -112,6 +102,15 @@ public class GaeProjectPropertyPage extends AbstractProjectPropertyPage {
     public GaeProjectWithoutNature(IJavaProject project) {
       super(project);
     }
+  }
+
+  /**
+   * Interface to allow extension points to determine whether this project is
+   * eligible for GAE SDK selection.
+   *
+   */
+  public interface GaeSdkSelectionEnablementFinder {
+    boolean shouldEnableGaeSdkSelection(IProject project);
   }
 
   public static final String APPENGINE_GOOGLE_CLOUD_SQL_URL =
@@ -138,23 +137,8 @@ public class GaeProjectPropertyPage extends AbstractProjectPropertyPage {
 
   private static final String RUN_GROUP_ID = "org.eclipse.debug.ui.launchGroup.run";
 
-<<<<<<< .mine
   private Link apisConsoleLink;
 
-=======
-  public static String copyJdbcDriverJar(IJavaProject javaProject, GaeSdk sdk)
-      throws IOException {
-    IPath inFilePath = Path.fromOSString(GoogleCloudSqlProperties.getMySqlJdbcJar(javaProject.getProject()));
-    File outFile = sdk.getInstallationPath().append(
-        "/lib/impl/" + inFilePath.lastSegment()).toFile();
-    outFile.delete();
-    ResourceUtils.copyFile(inFilePath.toFile(), outFile);
-    return outFile.getAbsolutePath();
-  }
-
-  private Link apisConsoleLink;
-
->>>>>>> .r4
   private Link appengineCloudSqlConfigureLink;
 
   private boolean appEngineWebXmlExists;
@@ -178,8 +162,6 @@ public class GaeProjectPropertyPage extends AbstractProjectPropertyPage {
   private boolean hrdSupport;
 
   private String initialAppId;
-
-  private boolean initialUseDatanucleus;
 
   private boolean initialUseDatanucleus;
 
@@ -223,73 +205,6 @@ public class GaeProjectPropertyPage extends AbstractProjectPropertyPage {
 
   public GaeProjectPropertyPage() {
     noDefaultAndApplyButton();
-  }
-
-  @Override
-  protected Control createContents(Composite parent) {
-    Composite panel = new Composite(parent, SWT.NONE);
-    panel.setLayout(new GridLayout());
-
-    useGaeCheckbox = new Button(panel, SWT.CHECK);
-    useGaeCheckbox.setText("Use Google App Engine");
-
-    createSdkComponent(panel);
-    createDeployComponent(panel);
-    createDatastoreComponent(panel);
-    createGoogleCloudSqlComponent(panel);
-
-    recordInitialSettings();
-    initializeControls();
-    addEventHandlers();
-    fieldChanged();
-
-    return panel;
-  }
-
-  @Override
-  protected void saveProjectProperties() throws BackingStoreException, CoreException, IOException {
-    // Only add or remove App Engine if the nature or SDK actually changed
-    if (hasNatureChanged() || hasSdkChanged()) {
-      if (useGae) {
-        addGae();
-      } else {
-        removeGae();
-      }
-    }
-
-    if (useGae) {
-      GaeProjectProperties.jobSetIsUseSdkFromDefault(getProject(), sdkSelectionBlock.isDefault());
-
-      saveChangesToAppEngineWebXml();
-
-      if (hasHrdChanged()) {
-        GaeProjectProperties.jobSetGaeHrdEnabled(getProject(), useHrdCheckbox.getSelection());
-      }
-      if (hasDatanucleusChanged()) {
-        if (!useDatanucleusCheckbox.getSelection()) {
-          BuilderUtilities.removeBuilderFromProject(getProject(), GaeNature.CLASS_ENHANCER_BUILDER);
-        } else {
-          BuilderUtilities.addBuilderToProject(getProject(), GaeNature.CLASS_ENHANCER_BUILDER);
-        }
-        GaeProjectProperties.jobSetGaeDatanucleusEnabled(getProject(),
-            useDatanucleusCheckbox.getSelection());
-        updateGaeSdk();
-      }
-    }
-<<<<<<< .mine
-    GoogleCloudSqlProperties.jobSetGoogleCloudSqlEnabled(getProject(),
-        useGoogleCloudSqlCheckbox.isEnabled() && useGoogleCloudSqlCheckbox.getSelection());
-    GoogleCloudSqlProperties.jobSetLocalDevMySqlEnabled(getProject(), mySqlRadio.getSelection());
-=======
-    GoogleCloudSqlProperties.jobSetGoogleCloudSqlEnabled(getProject(),
-        useGoogleCloudSqlCheckbox.isEnabled() && useGoogleCloudSqlCheckbox.getSelection());
-    GoogleCloudSqlProperties.jobSetLocalDevMySqlEnabled(getProject(), mySqlRadio.getSelection());
-    if (useGoogleCloudSqlCheckbox.getSelection() && mySqlRadio.getSelection()
-        && (hasJdbcChanged() || hasSdkChanged())) {
-      GoogleCloudSqlProperties.jobSetGoogleCloudSqlCopiedJdbcDriverPath(getProject(),
-          copyJdbcDriverJar());
-    }
->>>>>>> .r4
   }
 
   private void addAppengineDevelopmentControls(Composite composite) {
@@ -376,13 +291,8 @@ public class GaeProjectPropertyPage extends AbstractProjectPropertyPage {
     });
     appengineCloudSqlConfigureLink.addListener(SWT.Selection, new Listener() {
       public void handleEvent(Event event) {
-<<<<<<< .mine
         GoogleCloudSqlConfigure googleSqlConfigure =
             new GoogleCloudSqlConfigure(getShell(), getJavaProject(), true);
-=======
-        GoogleCloudSqlConfigure googleSqlConfigure =
-            new GoogleCloudSqlConfigure(getShell(), getProject(), true);
->>>>>>> .r4
         googleSqlConfigure.create();
         Boolean returnStatus = googleSqlConfigure.open() == Dialog.OK;
         if (!configuredProdCloudSql) {
@@ -393,11 +303,7 @@ public class GaeProjectPropertyPage extends AbstractProjectPropertyPage {
     });
     mySqlConfigureLink.addListener(SWT.Selection, new Listener() {
       public void handleEvent(Event event) {
-<<<<<<< .mine
         MySqlConfigure mySqlConfigure = new MySqlConfigure(getShell(), getJavaProject());
-=======
-        MySqlConfigure mySqlConfigure = new MySqlConfigure(getShell(), getProject());
->>>>>>> .r4
         mySqlConfigure.create();
         Boolean returnStatus = mySqlConfigure.open() == Dialog.OK;
         if (!configuredMySql) {
@@ -420,13 +326,8 @@ public class GaeProjectPropertyPage extends AbstractProjectPropertyPage {
     });
     testGoogleCloudSqlConfigureLink.addListener(SWT.Selection, new Listener() {
       public void handleEvent(Event event) {
-<<<<<<< .mine
         GoogleCloudSqlConfigure googleSqlConfigure =
             new GoogleCloudSqlConfigure(getShell(), getJavaProject(), false);
-=======
-        GoogleCloudSqlConfigure googleSqlConfigure =
-            new GoogleCloudSqlConfigure(getShell(), getProject(), false);
->>>>>>> .r4
         googleSqlConfigure.create();
         Boolean returnStaus = googleSqlConfigure.open() == Dialog.OK;
         if (!configuredTestCloudSql) {
@@ -541,46 +442,25 @@ public class GaeProjectPropertyPage extends AbstractProjectPropertyPage {
         + " Instance to be used for local development");
   }
 
-<<<<<<< .mine
-  private void createDatastoreComponent(Composite parent) {
-    Group group = SWTFactory.createGroup(parent, "Datastore", 3, 1, GridData.FILL_HORIZONTAL);
+  @Override
+  protected Control createContents(Composite parent) {
+    Composite panel = new Composite(parent, SWT.NONE);
+    panel.setLayout(new GridLayout());
 
-    useHrdCheckbox = new Button(group, SWT.CHECK);
-    useHrdLink = new Link(group, SWT.NONE);
-    useHrdLink.setText("Enable local <a href=\"" + APPENGINE_LOCAL_HRD_URL + "\">HRD</a> support");
-    useHrdLink.setToolTipText(APPENGINE_LOCAL_HRD_URL);
-    useHrdLink.addListener(SWT.Selection, new Listener() {
-      public void handleEvent(Event ev) {
-        BrowserUtilities.launchBrowserAndHandleExceptions(ev.text);
-      }
-    });
+    useGaeCheckbox = new Button(panel, SWT.CHECK);
+    useGaeCheckbox.setText("Use Google App Engine");
 
-    Link hrdLink = new Link(group, SWT.NONE);
-    hrdLink.setLayoutData(new GridData(SWT.RIGHT, SWT.NONE, true, false));
-    hrdLink.setText("<a href=\"#\">Run Configurations...</a>");
-    hrdLink.setToolTipText("Runtime HRD parameters can be adjusted per run configuration, in the App Engine options tab.");
-    hrdLink.addListener(SWT.Selection, new Listener() {
-      public void handleEvent(Event event) {
-        // Open the run configurations dialog and select the WebApp type.
-        ILaunchConfigurationType webAppLaunchType = DebugPlugin.getDefault().getLaunchManager().getLaunchConfigurationType(
-            WebAppLaunchConfiguration.TYPE_ID);
+    createSdkComponent(panel);
+    createDeployComponent(panel);
+    createDatastoreComponent(panel);
+    createGoogleCloudSqlComponent(panel);
 
-        DebugUITools.openLaunchConfigurationDialogOnGroup(getShell(), new StructuredSelection(
-            webAppLaunchType), RUN_GROUP_ID);
-      }
-    });
-    useDatanucleusCheckbox = new Button(group, SWT.CHECK);
-    useDatanucleusLabel = new Label(group, SWT.NONE);
-    useDatanucleusLabel.setText("Use Datanucleus JDO/JPA to access the datastore");
-    useDatanucleusLabel.setToolTipText("Enabling this option imports the Datanucleus JAR files into your "
-        + "project so that you can use them to access the datastore via JDO/JPA. It will also enable the "
-        + "Datanucleus enhancer to be run automatically. Disable this option if you are not using the "
-        + "datastore at all or if you are not accessing the datastore via JDO/JPA.");
-=======
-  private String copyJdbcDriverJar() throws JavaModelException, IOException {
-    IJavaProject javaProject = getJavaProject();
-    return copyJdbcDriverJar(javaProject, GaeSdk.findSdkFor(javaProject));
->>>>>>> .r4
+    recordInitialSettings();
+    initializeControls();
+    addEventHandlers();
+    fieldChanged();
+
+    return panel;
   }
 
   private void createDatastoreComponent(Composite parent) {
@@ -724,13 +604,9 @@ public class GaeProjectPropertyPage extends AbstractProjectPropertyPage {
   }
 
   private void fieldChanged() {
-<<<<<<< .mine
     if (isAppEngineWebXmlNeeded()) {
       addAppEngineWebXml(getProject());
     }
-=======
-    addAppEngineWebXml(getProject());
->>>>>>> .r4
     validateFields();
     updateControls();
   }
@@ -743,13 +619,6 @@ public class GaeProjectPropertyPage extends AbstractProjectPropertyPage {
     return useHrdCheckbox.getSelection() ^ initialUseHrd;
   }
 
-<<<<<<< .mine
-=======
-  private boolean hasJdbcChanged() {
-    return !GoogleCloudSqlProperties.getMySqlJdbcJar(getProject()).equals(initialJdbcPath);
-  }
-
->>>>>>> .r4
   private boolean hasNatureChanged() {
     return useGae ^ initialUseGae;
   }
@@ -774,7 +643,6 @@ public class GaeProjectPropertyPage extends AbstractProjectPropertyPage {
     appengineCloudSqlConfigureLink.setEnabled(useGoogleCloudSqlCheckbox.getSelection());
   }
 
-<<<<<<< .mine
   private boolean isAppEngineWebXmlNeeded() {
     IConfigurationElement[] extensions =
         Platform.getExtensionRegistry().getConfigurationElementsFor(
@@ -798,19 +666,6 @@ public class GaeProjectPropertyPage extends AbstractProjectPropertyPage {
     return false;
   }
 
-=======
-  // TODO: This check should be extracted out to com.google.gdt.eclipse.core
-  private boolean isGWTProject(IProject project) {
-    try {
-      return project.isAccessible()
-          && project.hasNature("com.google.gwt.eclipse.core.GWTPlugin.gwtNature");
-    } catch (CoreException e) {
-      AppEngineCorePluginLog.logError(e);
-    }
-    return false;
-  }
-
->>>>>>> .r4
   private void openBrowser(String url) {
     BrowserUtilities.launchBrowserAndHandleExceptions(url);
   }
@@ -818,12 +673,7 @@ public class GaeProjectPropertyPage extends AbstractProjectPropertyPage {
   private void recordInitialSettings() {
     initialUseGae = GaeNature.isGaeProject(getProject());
     initialUseHrd = GaeProjectProperties.getGaeHrdEnabled(getProject());
-<<<<<<< .mine
     initialUseDatanucleus = GaeProjectProperties.getGaeDatanucleusEnabled(getProject());
-=======
-    initialUseDatanucleus = GaeProjectProperties.getGaeDatanucleusEnabled(getProject());
-    initialJdbcPath = GoogleCloudSqlProperties.getMySqlJdbcJar(getProject());
->>>>>>> .r4
     initialUseGoogleCloudSql = GoogleCloudSqlProperties.getGoogleCloudSqlEnabled(getProject());
 
     if (WebAppUtilities.isWebApp(getProject())) {
@@ -860,6 +710,41 @@ public class GaeProjectPropertyPage extends AbstractProjectPropertyPage {
     if (!version.equals(initialVersion)) {
       gaeProject.setAppVersion(version, true);
     }
+  }
+
+  @Override
+  protected void saveProjectProperties() throws BackingStoreException, CoreException, IOException {
+    // Only add or remove App Engine if the nature or SDK actually changed
+    if (hasNatureChanged() || hasSdkChanged()) {
+      if (useGae) {
+        addGae();
+      } else {
+        removeGae();
+      }
+    }
+
+    if (useGae) {
+      GaeProjectProperties.jobSetIsUseSdkFromDefault(getProject(), sdkSelectionBlock.isDefault());
+
+      saveChangesToAppEngineWebXml();
+
+      if (hasHrdChanged()) {
+        GaeProjectProperties.jobSetGaeHrdEnabled(getProject(), useHrdCheckbox.getSelection());
+      }
+      if (hasDatanucleusChanged()) {
+        if (!useDatanucleusCheckbox.getSelection()) {
+          BuilderUtilities.removeBuilderFromProject(getProject(), GaeNature.CLASS_ENHANCER_BUILDER);
+        } else {
+          BuilderUtilities.addBuilderToProject(getProject(), GaeNature.CLASS_ENHANCER_BUILDER);
+        }
+        GaeProjectProperties.jobSetGaeDatanucleusEnabled(getProject(),
+            useDatanucleusCheckbox.getSelection());
+        updateGaeSdk();
+      }
+    }
+    GoogleCloudSqlProperties.jobSetGoogleCloudSqlEnabled(getProject(),
+        useGoogleCloudSqlCheckbox.isEnabled() && useGoogleCloudSqlCheckbox.getSelection());
+    GoogleCloudSqlProperties.jobSetLocalDevMySqlEnabled(getProject(), mySqlRadio.getSelection());
   }
 
   private void updateControls() {
@@ -1019,12 +904,8 @@ public class GaeProjectPropertyPage extends AbstractProjectPropertyPage {
     String enteredVersion = versionText.getText().trim();
 
     if (!enteredVersion.matches("[a-zA-Z0-9-]*")) {
-<<<<<<< .mine
       return StatusUtilities.newErrorStatus(
           "Invalid version number. Only letters, digits and hyphen allowed.",
-=======
-      return StatusUtilities.newErrorStatus("Cannot set version (appengine-web.xml is missing)",
->>>>>>> .r4
           AppEngineCorePlugin.PLUGIN_ID);
     }
 
