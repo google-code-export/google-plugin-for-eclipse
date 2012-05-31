@@ -163,7 +163,9 @@ public enum LaunchConfigAffectingChangesListener implements
     Preferences preferences = event.getNode().parent();
     if (preferences.parent().name() == ProjectScope.SCOPE) {
       IJavaProject javaProject = JavaProjectUtilities.findJavaProject(preferences.name());
-      updateLaunchConfigs(javaProject);
+      if (javaProject != null) {
+    	  updateLaunchConfigs(javaProject);
+    	}
     }
   }
 
