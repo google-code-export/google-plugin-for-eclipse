@@ -17,8 +17,6 @@ Export-Package: com.google.gdt.eclipse.platform.jdt.dom,
  com.google.gdt.eclipse.platform.ui,
  com.google.gdt.eclipse.platform.update,
  com.google.gwt.eclipse.platform.editors.java.contentassist,
- com.google.gdt.eclipse.platform.content,
- com.google.gdt.eclipse.platform.jdt.refactoring,
  com.google.gwt.eclipse.platform.uibinder
 Bundle-ActivationPolicy: lazy
 Require-Bundle: org.eclipse.jface,
@@ -39,7 +37,5 @@ Require-Bundle: org.eclipse.jface,
  javax.servlet,
  org.eclipse.jst.server.core,
  org.eclipse.wst.server.core,
- org.eclipse.jdt.core.manipulation,
- org.eclipse.ui.workbench.texteditor,
  org.eclipse.jdt.debug
 Bundle-Localization: plugin
