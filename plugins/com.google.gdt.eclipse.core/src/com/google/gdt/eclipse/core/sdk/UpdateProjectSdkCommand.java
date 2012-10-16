@@ -33,12 +33,12 @@ import java.util.List;
  * Command for updating a project's SDK by removing any old SDK entries and
  * adding a new classpath container for the new SDK and optionally updating
  * WEB-INF folder.
- * 
+ *
  * @param <T> type of Sdk
  */
 public abstract class UpdateProjectSdkCommand<T extends Sdk> {
   /**
-   * A classpath update type.  These constants control how an Sdk will 
+   * A classpath update type.  These constants control how an Sdk will
    * be added to the classpath.
    */
   public enum UpdateType {
@@ -57,10 +57,10 @@ public abstract class UpdateProjectSdkCommand<T extends Sdk> {
       /*
        * If the old SDK was not a container then we will use raw jars/projects.
        * The new SDK will never be a container - those only exist on a project's
-       * classpath.  
-       * 
+       * classpath.
+       *
        * TODO: We need a better way to model the sdk install vs. and sdk on the
-       * project's classpath.  They are currently mixed.  
+       * project's classpath.  They are currently mixed.
        */
       if (oldClasspathEntries.length != 1
           || ClasspathUtilities.findClasspathEntryContainer(
@@ -147,5 +147,13 @@ public abstract class UpdateProjectSdkCommand<T extends Sdk> {
 
   protected IJavaProject getJavaProject() {
     return javaProject;
+  }
+
+  protected T getNewSdk() {
+    return newSdk;
+  }
+
+  protected UpdateType getUpdateType() {
+    return updateType;
   }
 }

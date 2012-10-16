@@ -165,7 +165,9 @@ public class ProjectResourceUtils {
       Entry<String, String> entry = iter.next();
       String replaceThis = entry.getKey();
       String withThis = entry.getValue();
-      replacedContents = replacedContents.replaceAll(replaceThis, withThis);
+      if (replaceThis != null && withThis != null) {
+        replacedContents = replacedContents.replaceAll(replaceThis, withThis);
+      }
     }
 
     return replacedContents;

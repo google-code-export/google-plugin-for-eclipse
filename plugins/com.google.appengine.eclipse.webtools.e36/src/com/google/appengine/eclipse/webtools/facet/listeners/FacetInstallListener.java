@@ -14,6 +14,8 @@
  *******************************************************************************/
 package com.google.appengine.eclipse.webtools.facet.listeners;
 
+import com.google.appengine.eclipse.webtools.facet.JpaFacetHelper;
+
 // Due to code-reorganization in the WTP plugins used for Eclipse 3.7 vs
 // Eclipse 3.6 vs Eclipse 3.5, the App Engine WTP plugin needed to be split
 // into 3.7, 3.6, and 3.5 versions.
@@ -23,6 +25,8 @@ public class FacetInstallListener extends AbstractFacetInstallListener {
 
   @Override
   protected void startJpaListener() {
-    JpaProjectsListener.start();
+    if (JpaFacetHelper.areJpaDepsAvailable()) {
+      JpaProjectsListener.start();
+    }
   }
 }

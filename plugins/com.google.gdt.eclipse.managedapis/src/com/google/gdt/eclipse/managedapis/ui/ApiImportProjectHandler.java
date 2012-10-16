@@ -48,7 +48,7 @@ public class ApiImportProjectHandler extends AbstractHandler {
             "Google Plugin for Eclipse", "Project " + project.getName()
                 + " is not open. Please open the project and try to add a Google API again.");
       } else if (project == null
-          || AppEngineCheckDialog.isAppEngineProject(project)) {
+          || AppEngineAndroidCheckDialog.isAppEngineAndroidProject(project)) {
         ApiImportWizard wizard = new ApiImportWizard();
         wizard.setProject(project);
         wizard.setResources(ManagedApiPlugin.getDefault().getResources());

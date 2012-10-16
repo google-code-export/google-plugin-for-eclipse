@@ -1,183 +1,173 @@
-/*******************************************************************************
- * Copyright 2011 Google Inc. All Rights Reserved.
- *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *******************************************************************************/
 package @PackageName@;
 
-import com.google.web.bindery.requestfactory.shared.Receiver;
-import com.google.web.bindery.requestfactory.shared.ServerFailure;
+import com.google.android.gms.auth.UserRecoverableAuthException;
+import com.google.api.client.extensions.android.http.AndroidHttp;
+import com.google.api.client.json.jackson.JacksonFactory;
 
-import @PackageName@.client.MyRequestFactory;
-import @PackageName@.client.MyRequestFactory.HelloWorldRequest;
-
-import android.app.Activity;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
+import android.provider.Settings;
 import android.view.Menu;
 import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.TextView;
+import android.accounts.Account;
+import android.accounts.AccountManager;
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 
-/**
- * Main activity - requests "Hello, World" messages from the server and provides
- * a menu item to invoke the accounts activity.
- */
-public class @ClassName@Activity extends Activity {
-    /**
-     * Tag for logging.
-     */
-    private static final String TAG = "@ClassName@Activity";
+import com.appspot.api.services.helloEndpoint.HelloEndpoint;
+import com.appspot.api.services.helloEndpoint.HelloEndpoint.Builder;
+import @PackageName@.R;
 
-    /**
-     * The current context.
-     */
-    private Context mContext = this;
+import java.io.IOException;
+import java.util.ArrayList;
 
-    /**
-     * A {@link BroadcastReceiver} to receive the response from a register or
-     * unregister request, and to update the UI.
-     */
-    private final BroadcastReceiver mUpdateUIReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String accountName = intent.getStringExtra(DeviceRegistrar.ACCOUNT_NAME_EXTRA);
-            int status = intent.getIntExtra(DeviceRegistrar.STATUS_EXTRA,
-                    DeviceRegistrar.ERROR_STATUS);
-            String message = null;
-            String connectionStatus = Util.DISCONNECTED;
-            if (status == DeviceRegistrar.REGISTERED_STATUS) {
-                message = getResources().getString(R.string.registration_succeeded);
-                connectionStatus = Util.CONNECTED;
-            } else if (status == DeviceRegistrar.UNREGISTERED_STATUS) {
-                message = getResources().getString(R.string.unregistration_succeeded);
-            } else {
-                message = getResources().getString(R.string.registration_error);
-            }
+public class HelloActivity extends Activity {
+  private static final int REQUEST_ACCOUNT_PICKER = 0;
+  private static final String PREF_ACCOUNT_NAME = "accountName";
+  private HelloEndpoint endpoint;
+  private Context mContext;
+  
+  public HelloActivity() {
+  }
 
-            // Set connection status
-            SharedPreferences prefs = Util.getSharedPreferences(mContext);
-            prefs.edit().putString(Util.CONNECTION_STATUS, connectionStatus).commit();
+  @Override
+  public void onCreate(Bundle savedInstanceState) {
+    mContext = getApplicationContext(); 
+    super.onCreate(savedInstanceState);
+    setContentView(R.layout.activity_ping);
+  }
 
-            // Display a notification
-            Util.generateNotification(mContext, String.format(message, accountName));
+  /**
+   * On resume, if no account is found start the account add intent.
+   * Else use previously selected account for configuring HelloEndpoint and
+   * DeviceInfoEndpoint.
+   */
+  @Override
+  protected void onResume() {
+    super.onResume();
+    String defaultAccount = getGoogleAccount();
+    if (defaultAccount == null) {
+      startActivity(new Intent(Settings.ACTION_ADD_ACCOUNT));
+    } else {
+      SharedPreferences settings = getPreferences(Context.MODE_PRIVATE);
+      String account = settings.getString(PREF_ACCOUNT_NAME, null);
+      if (account == null) {
+        account = defaultAccount;
+      }
+      configureGcmAndEndpoints(account);
+      configureButton();
+    }
+  }
+
+  @Override
+  public boolean onCreateOptionsMenu(Menu menu) {
+    MenuInflater inflater = getMenuInflater();
+    inflater.inflate(R.menu.activity_ping, menu);
+    return true;
+  }
+
+  @Override
+  public boolean onOptionsItemSelected(MenuItem item) {
+    switch (item.getItemId()) {
+      case R.id.menu_accounts:
+        chooseAccount();
+        break;
+    }
+    return super.onOptionsItemSelected(item);
+  }
+
+  /**
+   * When a new account in selected, reconfigure the endpoints with the new account.
+   */
+  @Override
+  protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    super.onActivityResult(requestCode, resultCode, data);
+    switch (requestCode) {
+      case REQUEST_ACCOUNT_PICKER:
+        if (data != null && data.getExtras() != null) {
+          String account = data.getExtras().getString(AccountManager.KEY_ACCOUNT_NAME);
+          if (account != null) {
+            configureGcmAndEndpoints(account);
+          }
         }
-    };
+      break;
+    }  
+  }
 
-    /**
-     * Begins the activity.
-     */
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        Log.i(TAG, "onCreate");
-        super.onCreate(savedInstanceState);
+  void chooseAccount() {
+    GoogleAccountCredential credential = GoogleAccountCredential
+      .usingAudience(mContext, Ids.AUDIENCE);
+    startActivityForResult(credential.newChooseAccountIntent(), REQUEST_ACCOUNT_PICKER);
+  }
 
-        // Register a receiver to provide register/unregister notifications
-        registerReceiver(mUpdateUIReceiver, new IntentFilter(Util.UPDATE_UI_INTENT));
+  /**
+   * Configures the endpoints with the new account.
+   * 
+   * @param account the currently selected account.
+   */
+  void configureGcmAndEndpoints(String account) {
+    SharedPreferences settings = getPreferences(Context.MODE_PRIVATE);
+    SharedPreferences.Editor editor = settings.edit();
+    editor.putString(PREF_ACCOUNT_NAME, account);
+    editor.commit();
+    TextView textView = (TextView) findViewById(R.id.textView);
+    textView.setText("Logged in as " + account +"\nClick \"Say Hello\" to send a hello " +
+      "to all your registered devices.");
+    GoogleAccountCredential credential = GoogleAccountCredential
+      .usingAudience(mContext, Ids.AUDIENCE);
+    credential.setAccountName(account);
+    GCMIntentService.register(getApplicationContext(), account);
+    Builder endpointBuilder = new HelloEndpoint.Builder(AndroidHttp.newCompatibleTransport(),
+        new JacksonFactory(), credential);
+    endpoint = CloudEndpointUtils.updateBuilder(endpointBuilder).build();
+  }
+
+  /**
+   * Used for detecting if the device already has accounts and also 
+   * getting the first account.
+   */
+  private String getGoogleAccount() {
+    ArrayList<String> result = new ArrayList<String>();
+    Account[] accounts = AccountManager.get(getApplicationContext()).getAccounts();
+    for (Account account : accounts) {
+      if (account.type.equals("com.google")) {
+        return account.name;
+      }
     }
+    return null;
+  }
 
+  private void configureButton() {
+    Button button = (Button) findViewById(R.id.sayHelloButton);
+    button.setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View v) {
+        new SendHelloTask().execute("Android Device");
+      }
+    });
+  }
+
+  /**
+   * Sends hello to all registered devices by useing HelloEndpoint.
+   */
+  private class SendHelloTask extends AsyncTask<String, Void, Void> {
     @Override
-    public void onResume() {
-        super.onResume();
-
-        SharedPreferences prefs = Util.getSharedPreferences(mContext);
-        String connectionStatus = prefs.getString(Util.CONNECTION_STATUS, Util.DISCONNECTED);
-        if (Util.DISCONNECTED.equals(connectionStatus)) {
-            startActivity(new Intent(this, AccountsActivity.class));
+    protected Void doInBackground(String... params) {
+      try {
+        endpoint.sendHello(params[0]).execute();
+      } catch (IOException e) {
+        if (e.getCause() instanceof UserRecoverableAuthException) {
+          UserRecoverableAuthException re = (UserRecoverableAuthException) e.getCause();
+          mContext.startActivity(re.getIntent().setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         }
-        setScreenContent(R.layout.hello_world);
+      }
+      return null;
     }
-
-    /**
-     * Shuts down the activity.
-     */
-    @Override
-    public void onDestroy() {
-        unregisterReceiver(mUpdateUIReceiver);
-        super.onDestroy();
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.main_menu, menu);
-        // Invoke the Register activity
-        menu.getItem(0).setIntent(new Intent(this, AccountsActivity.class));
-        return true;
-    }
-
-    // Manage UI Screens
-
-    private void setHelloWorldScreenContent() {
-        setContentView(R.layout.hello_world);
-
-        final TextView helloWorld = (TextView) findViewById(R.id.hello_world);
-        final Button sayHelloButton = (Button) findViewById(R.id.say_hello);
-        sayHelloButton.setOnClickListener(new OnClickListener() {
-            public void onClick(View v) {
-                sayHelloButton.setEnabled(false);
-                helloWorld.setText(R.string.contacting_server);
-
-                // Use an AsyncTask to avoid blocking the UI thread
-                new AsyncTask<Void, Void, String>() {
-                    private String message;
-
-                    @Override
-                    protected String doInBackground(Void... arg0) {
-                        MyRequestFactory requestFactory = Util.getRequestFactory(mContext,
-                                MyRequestFactory.class);
-                        final HelloWorldRequest request = requestFactory.helloWorldRequest();
-                        Log.i(TAG, "Sending request to server");
-                        request.getMessage().fire(new Receiver<String>() {
-                            @Override
-                            public void onFailure(ServerFailure error) {
-                                message = "Failure: " + error.getMessage();
-                            }
-
-                            @Override
-                            public void onSuccess(String result) {
-                                message = result;
-                            }
-                        });
-                        return message;
-                    }
-
-                    @Override
-                    protected void onPostExecute(String result) {
-                        helloWorld.setText(result);
-                        sayHelloButton.setEnabled(true);
-                    }
-                }.execute();
-            }
-        });
-    }
-
-    /**
-     * Sets the screen content based on the screen id.
-     */
-    private void setScreenContent(int screenId) {
-        setContentView(screenId);
-        switch (screenId) {
-            case R.layout.hello_world:
-                setHelloWorldScreenContent();
-                break;
-        }
-    }
+  }
 }

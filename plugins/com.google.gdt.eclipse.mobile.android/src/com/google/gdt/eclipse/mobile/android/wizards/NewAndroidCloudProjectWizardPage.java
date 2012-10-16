@@ -18,13 +18,9 @@ import com.google.appengine.eclipse.core.preferences.GaePreferences;
 import com.google.appengine.eclipse.core.preferences.ui.GaePreferencePage;
 import com.google.appengine.eclipse.core.sdk.GaeSdk;
 import com.google.appengine.eclipse.core.sdk.GaeSdkContainer;
+import com.google.gdt.eclipse.appengine.rpc.AppEngineRPCPlugin;
 import com.google.gdt.eclipse.core.sdk.Sdk;
 import com.google.gdt.eclipse.core.sdk.SdkClasspathContainer;
-import com.google.gdt.eclipse.mobile.android.wizards.helpers.ProjectCreationConstants;
-import com.google.gwt.eclipse.core.preferences.GWTPreferences;
-import com.google.gwt.eclipse.core.preferences.ui.GwtPreferencePage;
-import com.google.gwt.eclipse.core.runtime.GWTRuntime;
-import com.google.gwt.eclipse.core.runtime.GWTRuntimeContainer;
 
 import com.android.sdklib.IAndroidTarget;
 
@@ -100,7 +96,6 @@ public class NewAndroidCloudProjectWizardPage extends WizardPage {
   private Button browseButton;
 
   private Link configureAndroidSdkLink;
-  private Link configureOrDownloadGwtLink;
   private Link configureOrDownloadLink;
   private Button createActivityCheck;
   private Label locationLabel;
@@ -123,7 +118,7 @@ public class NewAndroidCloudProjectWizardPage extends WizardPage {
 
   @Override
   public boolean canFlipToNextPage() {
-    return isPageComplete();
+    return false;
   }
 
   /**
@@ -231,10 +226,6 @@ public class NewAndroidCloudProjectWizardPage extends WizardPage {
     return GaePreferences.getDefaultSdk();
   }
 
-  public GWTRuntime getSelectedGwtSdk() {
-    return GWTPreferences.getDefaultRuntime();
-  }
-
   // Returns the value of the "Create Activity" checkbox.
   public boolean isCreateActivity() {
     return createActivityCheck == null ? INITIAL_CREATE_ACTIVITY
@@ -243,28 +234,6 @@ public class NewAndroidCloudProjectWizardPage extends WizardPage {
 
   public void setPackageName(String packageName) {
     packageNameText.setText(packageName);
-  }
-
-  IPath getGaeSdkContainerPath() {
-    return getSdkContainerPath(getSelectedGaeSdk(),
-        GaeSdkContainer.CONTAINER_ID);
-  }
-
-  IPath getGWTSdkContainerPath() {
-    return getSdkContainerPath(getSelectedGwtSdk(),
-        GWTRuntimeContainer.CONTAINER_ID);
-  }
-
-  IPath getGWTSdkInstallationPath() {
-    return getSelectedGwtSdk().getInstallationPath();
-  }
-
-  IPath getSdkContainerPath(Sdk sdkSelection, String containerId) {
-    if (sdkSelection != null) {
-      return SdkClasspathContainer.computeContainerPath(containerId,
-          sdkSelection, SdkClasspathContainer.Type.DEFAULT);
-    }
-    return null;
   }
 
   private void createConfigureAdtSdkLink(Composite parent) {
@@ -305,36 +274,12 @@ public class NewAndroidCloudProjectWizardPage extends WizardPage {
   }
 
   /**
-   * Create link to configure GWT SDK, if there is no default
-   */
-  private void createConfigureGwtSdkLink(Composite parent) {
-    configureOrDownloadGwtLink = new Link(parent, SWT.NONE);
-    configureOrDownloadGwtLink.setText("<a href=\"#\">"
-        + "Configure Google Web Toolkit SDK ..." + "</a>");
-    configureOrDownloadGwtLink.addSelectionListener(new SelectionAdapter() {
-      @Override
-      public void widgetSelected(final SelectionEvent e) {
-        if (Window.OK == PreferencesUtil.createPreferenceDialogOn(getShell(),
-            GwtPreferencePage.ID, new String[] {GwtPreferencePage.ID}, null).open()) {
-          updateControls();
-          validatePageComplete();
-        }
-      }
-    });
-    configureOrDownloadGwtLink.setEnabled(true);
-  }
-
-  /**
-   * Creates the group for Gae/GWT/ADT SDK Selection
+   * Creates the group for Gae/ADT SDK Selection
    */
   private void createGoogleSdkGroup(Composite container) {
 
     if (getSelectedGaeSdk() == null) {
       createConfigureGaeSdkLink(container);
-    }
-
-    if (GWTPreferences.getDefaultRuntime() == null) {
-      createConfigureGwtSdkLink(container);
     }
 
     if (!isAndroidSdkInstalled()) {
@@ -345,9 +290,9 @@ public class NewAndroidCloudProjectWizardPage extends WizardPage {
   private void createInfoSection(final Composite container) {
     Label infoLabel = new Label(container, SWT.WRAP);
     infoLabel.setText("Creates a sample application that includes an Android mobile client,"
-        + " a GWT desktop web client, and backend service that runs on App Engine. This sample "
+        + " and backend service using cloud endpoints that runs on App Engine. This sample "
         + "also includes code that allows backend services to communicate with the Android "
-        + "client efficiently using the Cloud to Device Messaging Framework (C2DM).");
+        + "client efficiently using the Google Cloud Messaging Framework (GCM).");
     GridData infoData = new GridData(GridData.FILL_HORIZONTAL);
     infoData.widthHint = 200;
     infoLabel.setLayoutData(infoData);
@@ -522,10 +467,7 @@ public class NewAndroidCloudProjectWizardPage extends WizardPage {
   }
 
   private boolean projectExists(String projectName) {
-    return getProjectHandle(
-        projectName + ProjectCreationConstants.GAE_PROJECT_NAME_SUFFIX).exists()
-        || getProjectHandle(
-            projectName + ProjectCreationConstants.ADT_PROJECT_NAME_SUFFIX).exists();
+    return getProjectHandle(projectName).exists();
   }
 
   /**
@@ -735,15 +677,20 @@ public class NewAndroidCloudProjectWizardPage extends WizardPage {
     }
 
     if (projectExists(projectName)) {
-      return setStatus(
-          "A project with that name already exists in the workspace", MSG_ERROR);
+      return setStatus("A project with the name " + projectName
+          + " already exists in the workspace", MSG_ERROR);
     }
 
+    if (projectExists(projectName + AppEngineRPCPlugin.GAE_PROJECT_NAME_SUFFIX)) {
+      return setStatus(
+          "A project with the name " + projectName + AppEngineRPCPlugin.GAE_PROJECT_NAME_SUFFIX +
+          " already exists in the workspace", MSG_ERROR);
+    }
     return MSG_NONE;
   }
 
   /**
-   * Validates the Gae, Gwt, and Android Sdk selections
+   * Validates the Gae and Android Sdk selections
    * 
    * @return The wizard message type, one of MSG_ERROR, MSG_WARNING or MSG_NONE.
    */
@@ -757,22 +704,6 @@ public class NewAndroidCloudProjectWizardPage extends WizardPage {
     if (!gaeSdkValidationStatus.isOK()) {
       return setStatus("The selected App Engine SDK is not valid: "
           + gaeSdkValidationStatus.getMessage(), MSG_ERROR);
-    }
-
-    IStatus gwtRuntimeValidationStatus;
-    GWTRuntime selectedGwtRuntime = getSelectedGwtSdk();
-    if (selectedGwtRuntime == null) {
-      return setStatus("Please configure a GWT SDK.", MSG_ERROR);
-
-    } else if (!(gwtRuntimeValidationStatus = selectedGwtRuntime.validate()).isOK()) {
-      return setStatus("The selected GWT SDK is not valid: "
-          + gwtRuntimeValidationStatus.getMessage(), MSG_ERROR);
-    } else {
-      if (!selectedGwtRuntime.containsSCL()) {
-        return setStatus(
-            "Web Application Projects that use Google Web Toolkit and App Engine require a GWT SDK versioned 1.6 or later.",
-            MSG_ERROR);
-      }
     }
 
     if (!isAndroidSdkInstalled()) {
@@ -792,6 +723,18 @@ public class NewAndroidCloudProjectWizardPage extends WizardPage {
       return MSG_NONE;
     }
     return setStatus("An Android SDK Target must be specified.", MSG_ERROR);
+  }
+
+  IPath getGaeSdkContainerPath() {
+    return getSdkContainerPath(getSelectedGaeSdk(), GaeSdkContainer.CONTAINER_ID);
+  }
+
+  IPath getSdkContainerPath(Sdk sdkSelection, String containerId) {
+    if (sdkSelection != null) {
+      return SdkClasspathContainer.computeContainerPath(containerId,
+          sdkSelection, SdkClasspathContainer.Type.DEFAULT);
+    }
+    return null;
   }
 
 }

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?eclipse version="3.4"?>
 <plugin>
-   <extension
+ <extension
          point="org.eclipse.ui.newWizards">
       <wizard
             class="com.google.gdt.eclipse.mobile.android.wizards.NewAndroidCloudProjectWizard"
@@ -25,113 +25,5 @@
             preferredPerspectives="org.eclipse.jdt.ui.JavaPerspective"
             project="true">
       </wizard>
-   </extension>
-  <extension
-         point="org.eclipse.debug.ui.launchShortcuts">
-      <shortcut
-            class="com.google.gdt.eclipse.mobile.android.launch.ui.LocalCloudAppLaunchShortcut"
-            description="Debug Android application against Local Server"
-            icon="icons/android_app.png"
-            id="com.google.gdt.eclipse.android.cloud.launch.local"
-            label="Local App Engine Connected Android Application"
-            modes="debug">
-         <contextualLaunch>
-            <enablement>
-               <with
-                     variable="selection">
-                  <count
-                        value="1">
-                  </count>
-                  <iterate>
-                     <test
-                           forcePluginActivation="true"
-                           property="com.google.gdt.eclipse.mobile.android.isCloudLaunchTarget">
-                     </test>
-                  </iterate>
-               </with>
-            </enablement>
-         </contextualLaunch>
-      </shortcut>
-   </extension>
-    <extension
-         point="org.eclipse.debug.ui.launchShortcuts">
-      <shortcut
-            class="com.google.gdt.eclipse.mobile.android.launch.ui.RemoteCloudAppLaunchShortcut"
-            description="Debug Android application against Remote Server"
-            icon="icons/android_app.png"
-            id="com.google.gdt.eclipse.android.cloud.launch.remote"
-            label="Remote App Engine Connected Android Application"
-            modes="debug">
-         <contextualLaunch>
-            <enablement>
-               <with
-                     variable="selection">
-                  <count
-                        value="1">
-                  </count>
-                  <iterate>
-                     <test
-                           forcePluginActivation="true"
-                           property="com.google.gdt.eclipse.mobile.android.isCloudLaunchTarget">
-                     </test>
-                  </iterate>
-               </with>
-            </enablement>
-         </contextualLaunch>
-      </shortcut>
-   </extension>
-   <extension
-         point="org.eclipse.core.expressions.propertyTesters">
-      <propertyTester
-            class="com.google.gdt.eclipse.mobile.android.propertytesters.CloudConnectedTargetTester"
-            id="com.google.gdt.eclipse.mobile.android.launchTargetPropertyTester"
-            namespace="com.google.gdt.eclipse.mobile.android"
-            properties="isCloudLaunchTarget"
-            type="org.eclipse.core.runtime.IAdaptable">
-      </propertyTester>
-      <propertyTester
-            class="com.google.gdt.eclipse.mobile.android.propertytesters.GaeProjectTester"
-            id="com.google.gdt.eclipse.mobile.android.GaePropertyTester"
-            namespace="com.google.gdt.eclipse.mobile.android"
-            properties="gaeProject"
-            type="org.eclipse.core.runtime.IAdaptable">
-      </propertyTester>
-   </extension>
-   <extension
-         point="org.eclipse.ltk.core.refactoring.renameParticipants">
-      <renameParticipant
-            class="com.google.gdt.eclipse.mobile.android.refactoring.GaeProjectRenameParticipant"
-            id="com.google.gdt.eclipse.mobile.android.renameGaeProject"
-            name="GaeProject rename">
-         <enablement>
-          <with
-                  variable="element">
-            <instanceof
-                  value="org.eclipse.core.resources.IProject">
-            </instanceof>
-            </with>
-             <test
-                   forcePluginActivation="true"
-                   property="com.google.gdt.eclipse.mobile.android.gaeProject"
-                   value="true">
-             </test>
-         </enablement>
-      </renameParticipant>
-   </extension>
-   <!--extension 
-         id="cloudConnectedProjectBuilder" 
-         name="Cloud Connected Project Builder" 
-         point="org.eclipse.core.resources.builders">
-      <builder
-            hasNature="true">
-         <run class="com.google.gdt.eclipse.mobile.android.builder.CloudConnectedProjectBuilder">
-         </run>
-      </builder>
-   </extension-->
-   <extension
-         point="org.eclipse.ui.startup">
-      <startup
-            class="com.google.gdt.eclipse.mobile.android.resources.WorkspaceMonitor">
-      </startup>
    </extension>
 </plugin>

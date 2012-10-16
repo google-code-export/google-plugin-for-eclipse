@@ -59,6 +59,17 @@ public class GoogleCloudSqlConfigure extends StatusDialog {
     this.isProd = isProd;
   }
 
+  /*
+   * (non-Javadoc)
+   *
+   * @see org.eclipse.jface.dialogs.Dialog#create()
+   */
+  @Override
+  public void create() {
+    super.create();
+    getShell().setText("Configure Google Cloud SQL instance");
+  }
+
   private void addControls(Composite composite) {
     Label instanceNameLabel = new Label(composite, SWT.NONE);
     instanceNameLabel.setText("Instance name");
@@ -103,17 +114,6 @@ public class GoogleCloudSqlConfigure extends StatusDialog {
         validateFields();
       }
     });
-  }
-
-  /*
-   * (non-Javadoc)
-   *
-   * @see org.eclipse.jface.dialogs.Dialog#create()
-   */
-  @Override
-  public void create() {
-    super.create();
-    getShell().setText("Configure Google Cloud SQL instance");
   }
 
   /*
@@ -190,5 +190,55 @@ public class GoogleCloudSqlConfigure extends StatusDialog {
           StatusUtilities.newErrorStatus("Enter database name.", AppEngineCorePlugin.PLUGIN_ID);
     }
     updateStatus(status);
+  }
+  /*
+   * (non-Javadoc)
+   *
+   * @see org.eclipse.jface.dialogs.Dialog#createDialogArea(org.eclipse.swt.widgets .Composite)
+   */
+  @Override
+  protected Control createDialogArea(Composite parent) {
+    Composite composite = SWTFactory.createComposite(
+        (Composite) super.createDialogArea(parent), 2, 1, SWT.HORIZONTAL);
+    addControls(composite);
+    addEventHandlers();
+    initializeControls();
+    updateStatus(StatusUtilities.newInfoStatus(
+        "Please enter database details", AppEngineCorePlugin.PLUGIN_ID));
+    return composite;
+  }
+
+  /*
+   * (non-Javadoc)
+   *
+   * @see org.eclipse.jface.dialogs.Dialog#okPressed()
+   */
+  @Override
+  protected void okPressed() {
+    validateFields();
+    try {
+      if (isProd) {
+        GoogleCloudSqlProperties.setProdDatabaseName(project, databaseName.getText().trim());
+        GoogleCloudSqlProperties.setProdDatabasePassword(
+            project, databasePassword.getText().trim());
+        GoogleCloudSqlProperties.setProdDatabaseUser(project, databaseUser.getText().trim());
+        GoogleCloudSqlProperties.setProdInstanceName(project, instanceName.getText().trim());
+        SqlConnectionExtensionPopulator.populateCloudSQLBridgeExtender(
+            javaProject, SqlConnectionExtensionPopulator.ConnectionType.CONNECTION_TYPE_PROD);
+        GoogleCloudSqlProperties.setProdIsConfigured(project, true);
+      } else {
+        GoogleCloudSqlProperties.setTestDatabaseName(project, databaseName.getText().trim());
+        GoogleCloudSqlProperties.setTestDatabasePassword(
+            project, databasePassword.getText().trim());
+        GoogleCloudSqlProperties.setTestDatabaseUser(project, databaseUser.getText().trim());
+        GoogleCloudSqlProperties.setTestInstanceName(project, instanceName.getText().trim());
+        SqlConnectionExtensionPopulator.populateCloudSQLBridgeExtender(
+            javaProject, SqlConnectionExtensionPopulator.ConnectionType.CONNECTION_TYPE_TEST);
+        GoogleCloudSqlProperties.setTestIsConfigured(project, true);
+      }
+    } catch (BackingStoreException e) {
+      AppEngineCorePluginLog.logError(e, "Unable to store Google Cloud SQL configurations");
+    }
+    super.okPressed();
   }
 }

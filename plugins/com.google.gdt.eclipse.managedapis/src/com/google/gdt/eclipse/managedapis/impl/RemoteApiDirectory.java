@@ -24,14 +24,13 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.SubMonitor;
-import org.eclipse.update.internal.core.connection.ConnectionFactory;
-import org.eclipse.update.internal.core.connection.IResponse;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 
 /**
  * Access a remote (URL specified) API directory.
@@ -58,12 +57,12 @@ public class RemoteApiDirectory implements ApiDirectory {
       URL directoryUrl = null;
       try {
         directoryUrl = new URL(directoryLink);
-        IResponse response = ConnectionFactory.get(directoryUrl);
-        input = response.getInputStream();
+        URLConnection connection = directoryUrl.openConnection();
+        input = directoryUrl.openStream();
         ByteArrayOutputStream output = new ByteArrayOutputStream();
 
         long totalBytesRead = 0L;
-        long contentLength = response.getContentLength();
+        long contentLength = connection.getContentLength();
         monitor.beginTask("Downloading " + directoryUrl.toString(),
             (int) contentLength);
 

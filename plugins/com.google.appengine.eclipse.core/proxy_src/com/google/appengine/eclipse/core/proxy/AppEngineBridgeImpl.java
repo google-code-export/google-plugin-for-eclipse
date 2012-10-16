@@ -1,11 +1,11 @@
 /*******************************************************************************
  * Copyright 2011 Google Inc. All Rights Reserved.
- * 
+ *
  *  All rights reserved. This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License v1.0 which
  * accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- * 
+ *
  *  Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -50,9 +50,12 @@ import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+
+import javax.management.ReflectionException;
 
 /**
  * The implementation of the bridging layer between the GAE Plugin and the App
@@ -269,12 +272,35 @@ public class AppEngineBridgeImpl implements AppEngineBridge {
     }
   }
 
+  private enum Lib {
+    TOOLS("getOptionalToolsLib", "getOptionalToolsLibs"),
+    USER("getOptionalUserLib", "getOptionalUserLibs");
+
+    private final String getOptionalLib;
+    private final String getOptionalLibs;
+
+    private Lib(String o1, String o2) {
+      getOptionalLib = o1;
+      getOptionalLibs = o2;
+    }
+
+    public String getOptionalLib() {
+      return getOptionalLib;
+    }
+
+    public String getOptionalLibs() {
+      return getOptionalLibs;
+    }
+  }
+
   private static class VersionComparator implements Comparator<String> {
     public int compare(String version1, String version2)
         throws NumberFormatException {
       return SdkUtils.compareVersionStrings(version1, version2);
     }
   }
+
+  private static final String APPENGINE_API_JAR_NAME_REGEX = "appengine-api-.*sdk.*\\.jar";
 
   private static final IPath APPENGINE_TOOLS_API_JAR_PATH = new Path(
       "lib/appengine-tools-api.jar");
@@ -348,7 +374,7 @@ public class AppEngineBridgeImpl implements AppEngineBridge {
      * Note that we're using the same consoleOutputStream for both the output of
      * the update check, and deploy output. This should be safe, because both of
      * these operations are synchronous, so the same thread is being used.
-     * 
+     *
      * TODO: Should we do the update check in a separate thread? If the update
      * check hangs, then the deployment will not occur.
      */
@@ -431,21 +457,59 @@ if (e.getCause() instanceof SAXParseException) {
     return app.getVersion();
   }
 
-  public List<File> getBuildclasspathFiles() {
+  public List<File> getBuildclasspathFiles() throws ReflectionException {
+    return getBuildclasspathFiles(true);
+  }
+
+  public List<File> getBuildclasspathFiles(boolean getDatanucleusFiles) throws ReflectionException {
     List<File> classpathFiles = new ArrayList<File>();
     classpathFiles.addAll(getSharedLibFiles());
-    classpathFiles.addAll(getUserLibFiles());
 
     /*
-     * TODO: This should NOT be a build entry; it should only be added at
-     * runtime. However, to make this work, we need to re-enable
-     * IRuntimeEntryResolvers. Just to get things going, we'll put
+     * TODO: This should NOT be a build entry; it should only be added at runtime. However, to make
+     * this work, we need to re-enable IRuntimeEntryResolvers. Just to get things going, we'll put
      * appengine-tools-api.jar on the build path.
      */
     classpathFiles.add(new Path(SdkInfo.getSdkRoot().getAbsolutePath()).append(
         APPENGINE_TOOLS_API_JAR_PATH).toFile());
-
+    classpathFiles.addAll(getLatestUserLibFiles(getDatanucleusFiles));
     return classpathFiles;
+  }
+
+  public List<File> getLatestUserLibFiles(boolean getDatanucleusFiles) throws ReflectionException {
+    if (SdkUtils.compareVersionStrings(getSdkVersion(), MIN_VERSION_FOR_OPT_DATANUCLEUS_LIB) < 0) {
+      return getUserLibFiles();
+    }
+    List<File> userLibFiles = new ArrayList<File>();
+    for (String libName : getUserLibNames()) {
+      if (getDatanucleusFiles || !libName.equals("datanucleus")) {
+        userLibFiles.addAll(getUserLibFiles(libName, getLatestVersion(libName)));
+      }
+    }
+    File appengineApiJarFile = null;
+    for (File jarFile : getUserLibFiles()) {
+      if (jarFile.getName().matches(APPENGINE_API_JAR_NAME_REGEX)) {
+        appengineApiJarFile = jarFile;
+        break;
+      }
+    }
+    if (appengineApiJarFile != null) {
+      userLibFiles.add(appengineApiJarFile);
+    } else {
+      AppEngineCorePluginLog.logError("Unable to find appengine-api-1.0-sdk");
+    }
+    return userLibFiles;
+  }
+
+  public String getLatestVersion(String libName) throws ReflectionException {
+    List<String> versions = getUserLibVersions(libName);
+    String maxVersion = versions.get(0);
+    for (String version : versions) {
+      if (version.compareTo(maxVersion) > 0) {
+        maxVersion = version;
+      }
+    }
+    return maxVersion;
   }
 
   public String getSdkVersion() {
@@ -464,21 +528,108 @@ if (e.getCause() instanceof SAXParseException) {
     return toolLibFiles;
   }
 
+  public List<File> getToolsLibFiles(String libName, String version) throws ReflectionException {
+    return getLibFiles(libName, version, Lib.TOOLS);
+  }
+
+  public List<String> getToolsLibNames() throws ReflectionException {
+    return getLibNames(Lib.TOOLS);
+  }
+
+  public List<String> getToolsLibVersions(String libName) throws ReflectionException {
+    return getLibVersions(libName, Lib.TOOLS);
+  }
+
   public List<File> getUserLibFiles() {
     return SdkInfo.getUserLibFiles();
+  }
+
+  public List<File> getUserLibFiles(String libName, String version) throws ReflectionException {
+    return getLibFiles(libName, version, Lib.USER);
+  }
+
+  public List<String> getUserLibNames() throws ReflectionException {
+    return getLibNames(Lib.USER);
+  }
+
+  public List<String> getUserLibVersions(String libName) throws ReflectionException {
+    return getLibVersions(libName, Lib.USER);
   }
 
   public Set<String> getWhiteList() {
     return WhiteList.getWhiteList();
   }
 
+  private List<File> getLibFiles(String libName, String version, Lib lib)
+      throws ReflectionException {
+    Method getFilesForVersion =
+        getMethod(getOptionalLibClass(), "getFilesForVersion", String.class);
+    Method getOptionalLib = getMethod(SdkInfo.class, lib.getOptionalLib(), String.class);
+    Object optionalLib = invoke(getOptionalLib, null, libName);
+    if (optionalLib == null) {
+      return null;
+    }
+    return (List<File>) invoke(getFilesForVersion, optionalLib, version);
+  }
+
+  private List<String> getLibNames(Lib lib) throws ReflectionException {
+    Method getName = getMethod(getOptionalLibClass(), "getName");
+    Method getOptionalLibs = getMethod(SdkInfo.class, lib.getOptionalLibs());
+    Collection<?> optionalLibs = (Collection<?>) invoke(getOptionalLibs, null);
+    List<String> libs = new ArrayList<String>();
+    for (Object optionalLib : optionalLibs) {
+      libs.add((String) invoke(getName, optionalLib));
+    }
+    return libs;
+  }
+
+  private List<String> getLibVersions(String libName, Lib lib) throws ReflectionException {
+      Method getVersions = getMethod(getOptionalLibClass(), "getVersions");
+      Method getOptionalLib = getMethod(SdkInfo.class, lib.getOptionalLib(), String.class);
+      Object x = invoke(getOptionalLib, null, libName);
+      return (List<String>) invoke(getVersions, x);
+  }
+
+  private Method getMethod(Class<?> clazz, String method, Class<?>... parameterTypes)
+      throws ReflectionException {
+    try {
+      return clazz.getMethod(method, parameterTypes);
+    } catch (SecurityException e) {
+      throw new ReflectionException(e, "Unable to load method " + method);
+    } catch (NoSuchMethodException e) {
+      throw new ReflectionException(e, "Unable to find method " + method);
+    }
+  }
+
+  private Class<?> getOptionalLibClass() throws ReflectionException {
+    try {
+      return SdkInfo.class.getClassLoader()
+          .loadClass("com.google.appengine.tools.info.OptionalLib");
+    } catch (ClassNotFoundException e) {
+      throw new ReflectionException(
+          e, "Unable to load Optional Lib Class. Check if GAE SDK is up to date.");
+    }
+  }
+
   private boolean hasSdkInfo() {
     try {
-      Class.forName("com.google.appengine.tools.info.SdkInfo", false,
-          getClass().getClassLoader());
+      Class.forName("com.google.appengine.tools.info.SdkInfo", false, getClass().getClassLoader());
       return true;
     } catch (ClassNotFoundException e) {
       return false;
+    }
+  }
+
+  private Object invoke(Method method, Object obj, Object... args) throws ReflectionException {
+    String errorMessage = "Unable to invoke method: " + method.toString();
+    try {
+      return method.invoke(obj, args);
+    } catch (IllegalArgumentException e) {
+      throw new ReflectionException(e, errorMessage);
+    } catch (IllegalAccessException e) {
+      throw new ReflectionException(e, errorMessage);
+    } catch (InvocationTargetException e) {
+      throw new ReflectionException(e, errorMessage);
     }
   }
 

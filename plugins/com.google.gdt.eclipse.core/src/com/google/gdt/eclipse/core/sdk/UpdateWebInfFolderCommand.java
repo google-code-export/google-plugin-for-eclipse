@@ -60,7 +60,7 @@ public abstract class UpdateWebInfFolderCommand {
 
   private final IJavaProject javaProject;
 
-  private final Sdk sdk;
+  protected final Sdk sdk;
 
   protected UpdateWebInfFolderCommand(IJavaProject javaProject, Sdk sdk) {
     this.javaProject = javaProject;
@@ -70,10 +70,10 @@ public abstract class UpdateWebInfFolderCommand {
   public final void execute() throws CoreException, FileNotFoundException,
       BackingStoreException {
     IProject project = javaProject.getProject();
-    
+
     /*
      * We should not be here if the project does not have a managed WAR output directory, but
-     * it may be the case that this check was done before the project was fully configured 
+     * it may be the case that this check was done before the project was fully configured
      * (i.e. in the Maven case), so we perform a re-verification here.
      */
     if (!WebAppUtilities.hasManagedWarOut(project)) {

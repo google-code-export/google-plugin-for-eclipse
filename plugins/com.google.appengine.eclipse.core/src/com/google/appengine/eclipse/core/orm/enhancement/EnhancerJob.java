@@ -15,6 +15,7 @@
 package com.google.appengine.eclipse.core.orm.enhancement;
 
 import com.google.appengine.eclipse.core.AppEngineCorePlugin;
+import com.google.appengine.eclipse.core.properties.GaeProjectProperties;
 import com.google.gdt.eclipse.core.ProcessUtilities;
 import com.google.gdt.eclipse.core.console.MessageConsoleUtilities;
 import com.google.gdt.eclipse.core.extensions.ExtensionQuery;
@@ -50,6 +51,8 @@ public class EnhancerJob extends WorkspaceJob {
   private static final String NAME = "DataNucleus Enhancer";
 
   private static final String MAINCLASS = "com.google.appengine.tools.enhancer.Enhance";
+
+  private static final String DATANUCLEUS_VERSION_ARG = "-enhancerVersion";
 
   private static List<String> buildClasspath(IJavaProject javaProject)
       throws CoreException {
@@ -97,6 +100,14 @@ public class EnhancerJob extends WorkspaceJob {
 
       // Add the input files
       commands.addAll(pathsToEnhance);
+
+      // Add the datanucleus version number if it is not empty.
+      String datanucleusVersion = GaeProjectProperties.getGaeDatanucleusVersion(
+          javaProject.getProject());
+      if (datanucleusVersion != null && !datanucleusVersion.isEmpty()) {
+        commands.add(DATANUCLEUS_VERSION_ARG);
+        commands.add(datanucleusVersion);
+      }
 
       MessageConsole messageConsole = MessageConsoleUtilities.getMessageConsole(
           javaProject.getElementName() + " - Datanucleus Enhancement", null);

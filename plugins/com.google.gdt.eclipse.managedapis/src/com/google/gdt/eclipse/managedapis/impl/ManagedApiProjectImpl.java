@@ -104,9 +104,37 @@ public class ManagedApiProjectImpl implements ManagedApiProject {
     }
   }
 
-  public static final Gson GSON_CODEC = new Gson();
+  private static final String ANDROID_2_CLASSPATH_CONTAINER = "Android 2";
+  private static final String ANDROID_3_CLASSPATH_CONTAINER = "Android 3";
+  private static final String ANDROID_4_CLASSPATH_CONTAINER = "Android 4";
   private static final String OPEN_BRACE = "{";
+  private static final String ANDROID2_ENVIRONMENT = "android2";
+  private static final String ANDROID3_ENVIRONMENT = "android3";
+  public static final String APPENGINE_ENVIRONMENT = "appengine";
+  public static final Gson GSON_CODEC = new Gson();
   public static final String GDATA_FOLDER_NAME = "static";
+
+  public static String getAndroidSdk(IProject androidProject) throws JavaModelException {
+    if (androidProject == null) {
+      return null;
+    }
+    IJavaProject androidJavaProject = JavaCore.create(androidProject);
+    List<IClasspathEntry> rawClasspathList = new ArrayList<IClasspathEntry>();
+    rawClasspathList.addAll(Arrays.asList(androidJavaProject.getRawClasspath()));
+    for (IClasspathEntry e : rawClasspathList) {
+      if (e.getEntryKind() != IClasspathEntry.CPE_CONTAINER) {
+        continue;
+      }
+      IClasspathContainer c = JavaCore.getClasspathContainer(e.getPath(), androidJavaProject);
+      if (c.getDescription().contains(ANDROID_2_CLASSPATH_CONTAINER)) {
+        return ANDROID2_ENVIRONMENT;
+      } else if (c.getDescription().contains(ANDROID_3_CLASSPATH_CONTAINER)
+          || c.getDescription().contains(ANDROID_4_CLASSPATH_CONTAINER)) {
+        return ANDROID3_ENVIRONMENT;
+      }
+    }
+    return null;
+  }
 
   /**
    * Provide a simple way to produce a ManagedApiProject from a IJavaProject.
@@ -179,6 +207,12 @@ public class ManagedApiProjectImpl implements ManagedApiProject {
       // It is a web app -- set copyToTargetDir to use default (typically
       // war/WEB-INF/lib).
       setDefaultCopyToTargetDir();
+    } else if (getAndroidSdk(eProject.getProject()) != null) {
+      IFolder libsFolder = eProject.getProject().getFolder("libs");
+      if (!libsFolder.exists()) {
+        libsFolder.create(true, true, new NullProgressMonitor());
+      }
+      setCopyToTargetDir(libsFolder);
     }
   }
 
@@ -536,7 +570,8 @@ public class ManagedApiProjectImpl implements ManagedApiProject {
           new NullProgressMonitor());
       String descriptorContent = FileUtils.readFully(
           new FileReader(descriptorFile));
-      if (descriptorContent.indexOf(OPEN_BRACE) == -1) {
+      if (descriptorContent == null
+          || descriptorContent.indexOf(OPEN_BRACE) == -1) {
         // If descriptor doesn't have JSON, codegen doesn't have descriptor so
         // quit.
         return false;

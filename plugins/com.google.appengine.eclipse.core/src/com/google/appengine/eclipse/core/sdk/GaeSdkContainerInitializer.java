@@ -42,10 +42,9 @@ public class GaeSdkContainerInitializer extends
 
   @Override
   protected SdkClasspathContainer<GaeSdk> createClasspathContainer(
-      IPath containerPath, GaeSdk sdk, String description,
-      IJavaProject javaProject) {
-    return new GaeSdkContainer(containerPath, sdk, sdk.getClasspathEntries(),
-        description);
+      IPath containerPath, GaeSdk sdk, String description, IJavaProject javaProject) {
+    return new GaeSdkContainer(
+        containerPath, sdk, sdk.getClasspathEntries(javaProject), description);
   }
 
   @Override

@@ -256,12 +256,16 @@ public class ManagedApiInstallJob extends Job {
                   // Remove unwanted dependencies.
                   ApiDependencies apiDependencies = ManagedApiProjectImpl.GSON_CODEC.fromJson(
                       localDescriptorContent, ApiDependencies.class);
+                  String platform = ManagedApiProjectImpl.getAndroidSdk(project);
+                  if (platform == null) {
+                    platform = ManagedApiProjectImpl.APPENGINE_ENVIRONMENT;
+                  }
                   List<String> dependencyToRemoveList = new ArrayList<String>();
                   for (ApiDependencies.ApiDependency dependency :
                       apiDependencies.getDependencies()) {
                     List<ApiDependencies.File> fileList = dependency.getFiles();
                     if (!dependency.getEnvironments().contains("*")
-                        && !dependency.getEnvironments().contains("appengine")) {
+                        && !dependency.getEnvironments().contains(platform)) {
                       for (ApiDependencies.File file : dependency.getFiles()) {
                         if (file.getPath() != null) {
                           dependencyToRemoveList.add(file.getPath()

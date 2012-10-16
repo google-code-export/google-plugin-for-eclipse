@@ -26,6 +26,7 @@ import org.osgi.framework.BundleContext;
 public class AppEngineRPCPlugin extends AbstractGooglePlugin {
 
   public static final String PLUGIN_ID = AppEngineRPCPlugin.class.getPackage().getName();
+  public static final String GAE_PROJECT_NAME_SUFFIX = "-AppEngine"; //$NON-NLS-1$
 
   // singleton instance
   private static AppEngineRPCPlugin plugin;

@@ -61,45 +61,6 @@ public final class SqlConnectionExtensionPopulator {
   private static final String GAE_SQL_CONNECTION_PROPERTIES_EXTENSION_POINT =
       "gaeSqlToolsExtension";
 
-  private static String getCloudSqlJarPath(IJavaProject javaProject) {
-    String jarPath = "";
-    try {
-      jarPath = GaeSdk.findSdkFor(javaProject).getInstallationPath()
-          + AppEngineBridge.APPENGINE_CLOUD_SQL_JAR_PATH_IN_SDK
-          + AppEngineBridge.APPENGINE_CLOUD_SQL_JAR;
-    } catch (JavaModelException e) {
-      AppEngineCorePluginLog.logError(e);
-    }
-    return jarPath;
-  }
-
-  private static String getDisplaybleConnectionId(String projectName, ConnectionType type) {
-    return projectName + "." + type.getDisplayableStringForType();
-  }
-
-  private static String getJarPathForType(IJavaProject javaProject, ConnectionType connectionType) {
-    switch (connectionType) {
-      case CONNECTION_TYPE_LOCAL_MYSQL:
-        return GoogleCloudSqlProperties.getMySqlJdbcJar(javaProject.getProject());
-      case CONNECTION_TYPE_PROD:
-      case CONNECTION_TYPE_TEST:
-        return getCloudSqlJarPath(javaProject);
-    }
-    return null;
-  }
-
-  private static SqlConnectionProperties getSqlConnectionPropertiesByType(
-      IJavaProject javaProject, ConnectionType connectionType, String jarPath) {
-    if (connectionType == ConnectionType.CONNECTION_TYPE_LOCAL_MYSQL) {
-      return setLocalMySqlConnectionProperties(javaProject.getProject(), jarPath);
-    } else if (connectionType == ConnectionType.CONNECTION_TYPE_PROD) {
-      return setProdCloudSqlConnectorsProperties(javaProject, jarPath);
-    } else if (connectionType == ConnectionType.CONNECTION_TYPE_TEST) {
-      return setTestCloudSqlConnectorsProperties(javaProject, jarPath);
-    }
-    return null;
-  }
-
   public static void populateCloudSQLBridgeExtender(IJavaProject javaProject) {
     String cloudSqlJarPath = getCloudSqlJarPath(javaProject);
     populateCloudSQLBridgeExtender(javaProject, cloudSqlJarPath);
@@ -160,6 +121,45 @@ public final class SqlConnectionExtensionPopulator {
       populateCloudSQLBridgeExtender(
           javaProject, ConnectionType.CONNECTION_TYPE_PROD, cloudSqlJarPath);
     }
+  }
+
+  private static String getCloudSqlJarPath(IJavaProject javaProject) {
+    String jarPath = "";
+    try {
+      jarPath = GaeSdk.findSdkFor(javaProject).getInstallationPath()
+          + AppEngineBridge.APPENGINE_CLOUD_SQL_JAR_PATH_IN_SDK
+          + AppEngineBridge.APPENGINE_CLOUD_SQL_JAR;
+    } catch (JavaModelException e) {
+      AppEngineCorePluginLog.logError(e);
+    }
+    return jarPath;
+  }
+
+  private static String getDisplaybleConnectionId(String projectName, ConnectionType type) {
+    return projectName + "." + type.getDisplayableStringForType();
+  }
+
+  private static String getJarPathForType(IJavaProject javaProject, ConnectionType connectionType) {
+    switch (connectionType) {
+      case CONNECTION_TYPE_LOCAL_MYSQL:
+        return GoogleCloudSqlProperties.getMySqlJdbcJar(javaProject.getProject());
+      case CONNECTION_TYPE_PROD:
+      case CONNECTION_TYPE_TEST:
+        return getCloudSqlJarPath(javaProject);
+    }
+    return null;
+  }
+
+  private static SqlConnectionProperties getSqlConnectionPropertiesByType(
+      IJavaProject javaProject, ConnectionType connectionType, String jarPath) {
+    if (connectionType == ConnectionType.CONNECTION_TYPE_LOCAL_MYSQL) {
+      return setLocalMySqlConnectionProperties(javaProject.getProject(), jarPath);
+    } else if (connectionType == ConnectionType.CONNECTION_TYPE_PROD) {
+      return setProdCloudSqlConnectorsProperties(javaProject, jarPath);
+    } else if (connectionType == ConnectionType.CONNECTION_TYPE_TEST) {
+      return setTestCloudSqlConnectorsProperties(javaProject, jarPath);
+    }
+    return null;
   }
 
   private static SqlConnectionProperties setLocalMySqlConnectionProperties(

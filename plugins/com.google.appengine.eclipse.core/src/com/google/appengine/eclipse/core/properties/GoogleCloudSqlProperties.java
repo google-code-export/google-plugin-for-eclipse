@@ -145,11 +145,6 @@ public final class GoogleCloudSqlProperties {
     return prefs.getBoolean(PROD_IS_CONFIGURED, false);
   }
 
-  private static IEclipsePreferences getProjectProperties(IProject project) {
-    IScopeContext projectScope = new ProjectScope(project);
-    return projectScope.getNode(AppEngineCorePlugin.PLUGIN_ID);
-  }
-
   public static String getTestDatabaseName(IProject project) {
     IEclipsePreferences prefs = getProjectProperties(project);
     return prefs.get(TEST_DATABASE_NAME, "");
@@ -335,6 +330,11 @@ public final class GoogleCloudSqlProperties {
     IEclipsePreferences prefs = getProjectProperties(project);
     prefs.put(TEST_IS_CONFIGURED, isConfigured.toString());
     prefs.flush();
+  }
+
+  private static IEclipsePreferences getProjectProperties(IProject project) {
+    IScopeContext projectScope = new ProjectScope(project);
+    return projectScope.getNode(AppEngineCorePlugin.PLUGIN_ID);
   }
 
   private GoogleCloudSqlProperties() {

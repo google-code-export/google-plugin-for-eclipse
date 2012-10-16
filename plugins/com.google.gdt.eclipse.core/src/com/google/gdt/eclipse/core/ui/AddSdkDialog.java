@@ -255,6 +255,12 @@ public class AddSdkDialog<T extends Sdk> extends StatusDialog {
           "Another SDK already has this name"));
       return false;
     }
+
+    if (name.matches("v[0-9]{1,2}")) {
+      updateStatus(new Status(IStatus.ERROR, pluginId,
+          "The SDK name is not allowed."));
+      return false;
+    }
     return true;
   }
 

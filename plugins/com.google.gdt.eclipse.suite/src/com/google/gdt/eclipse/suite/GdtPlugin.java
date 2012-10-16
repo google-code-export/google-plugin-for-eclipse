@@ -52,7 +52,6 @@ import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PerspectiveAdapter;
-import org.eclipse.ui.internal.Perspective;
 import org.eclipse.ui.internal.Workbench;
 import org.eclipse.ui.internal.WorkbenchPage;
 import org.osgi.framework.BundleContext;
@@ -227,54 +226,6 @@ public class GdtPlugin extends AbstractGooglePlugin {
   }
 
   @Override
-  public void start(BundleContext context) throws Exception {
-    super.start(context);
-    plugin = this;
-    logger = new Logger(this);
-
-    // Force the installation id initialization before SDK registration.
-    getInstallationId();
-
-    GdtPreferences.registerSdks();
-    ProjectUtilities.setWebAppProjectCreatorFactory(WebAppProjectCreator.FACTORY);
-
-    /*
-     * Execute this on the UI thread. This has the effect of delaying the
-     * execution until the Workbench is running and the UI is available. This is
-     * necessary because the code in this method manipulates the Workbench UI.
-     */
-    Display.getDefault().asyncExec(new Runnable() {
-      public void run() {
-        maybeAddNewWizardActionsToWorkbench();
-      }
-    });
-
-    LaunchConfigAffectingChangesListener.INSTANCE.start();
-
-    // Load problem severities
-    GdtProblemSeverities.initializeInstance(new Class<?>[]{
-        AppEngineProblemType.class, GWTProblemType.class,
-        RemoteServiceProblemType.class, UiBinderJavaProblemType.class,
-        ClientBundleProblemType.class, ProjectStructureOrSdkProblemType.class,
-        UiBinderTemplateProblemType.class},
-        GdtPreferences.getEncodedProblemSeverities());
-
-    rebuildGoogleProjectsIfPluginVersionChanged();
-
-    new ProjectMigrator().migrate();
-  }
-
-  @Override
-  public void stop(BundleContext context) throws Exception {
-    LaunchConfigAffectingChangesListener.INSTANCE.stop();
-
-    plugin = null;
-    logger = null;
-
-    super.stop(context);
-  }
-
-  @Override
   protected void initializeImageRegistry(ImageRegistry reg) {
     super.initializeImageRegistry(reg);
 
@@ -297,41 +248,42 @@ public class GdtPlugin extends AbstractGooglePlugin {
     if (page == null || desc == null) {
       return;
     }
-
+    
     if (PERSPECTIVES_TO_ADD_WIZARDS_TO.contains(desc.getId())) {
-      Perspective perspective = page.findPerspective(desc);
-      if (perspective != null) {
-        List<String> wizardsToAdd = new ArrayList<String>(
-            WIZARDS_TO_ADD_TO_PERSPECTIVES);
-
-        // Ignore any wizards we've already tried to add to this perspective.
-        // That way we don't re-add any wizards that the user explicitly
-        // removed from the New shortcut menu.
-        List<String> wizardsAlreadyAdded = GdtPreferences.getAddedNewWizardActionsForPerspective(desc.getId());
-        wizardsToAdd.removeAll(wizardsAlreadyAdded);
-
-        // Get the current set of wizard shortcuts
-        List<String> currentWizardShortcuts = new ArrayList<String>(
-            Arrays.asList(perspective.getNewWizardShortcuts()));
-
-        // Ignore wizards that already have shortcuts in this perspective
-        wizardsToAdd.removeAll(currentWizardShortcuts);
-
-        // Only update the perspective if there are new wizards to add
-        if (!wizardsToAdd.isEmpty()) {
-          currentWizardShortcuts.addAll(wizardsToAdd);
-
-          // Update the perspective
-          perspective.setNewWizardActionIds(new ArrayList<String>(
-              currentWizardShortcuts));
-        }
-
-        // Remember the wizards that we've attempted to add to this perspective
-        GdtPreferences.setAddedNewWizardActionsForPerspective(desc.getId(),
-            WIZARDS_TO_ADD_TO_PERSPECTIVES);
-      } else {
-        assert false : "Perspective was activated but not found";
-      }
+      // Perspective perspective = page.findPerspective(desc);
+      // if (perspective != null) {
+      // List<String> wizardsToAdd = new ArrayList<String>(
+      // WIZARDS_TO_ADD_TO_PERSPECTIVES);
+      //
+      // // Ignore any wizards we've already tried to add to this perspective.
+      // // That way we don't re-add any wizards that the user explicitly
+      // // removed from the New shortcut menu.
+      // List<String> wizardsAlreadyAdded = GdtPreferences
+      // .getAddedNewWizardActionsForPerspective(desc.getId());
+      // wizardsToAdd.removeAll(wizardsAlreadyAdded);
+      //
+      // // Get the current set of wizard shortcuts
+      // List<String> currentWizardShortcuts = new ArrayList<String>(
+      // Arrays.asList(perspective.getNewWizardShortcuts()));
+      //
+      // // Ignore wizards that already have shortcuts in this perspective
+      // wizardsToAdd.removeAll(currentWizardShortcuts);
+      //
+      // // Only update the perspective if there are new wizards to add
+      // if (!wizardsToAdd.isEmpty()) {
+      // currentWizardShortcuts.addAll(wizardsToAdd);
+      //
+      // // Update the perspective
+      // perspective.setNewWizardActionIds(new ArrayList<String>(
+      // currentWizardShortcuts));
+      // }
+      //
+      // // Remember the wizards that we've attempted to add to this perspective
+      // GdtPreferences.setAddedNewWizardActionsForPerspective(desc.getId(),
+      // WIZARDS_TO_ADD_TO_PERSPECTIVES);
+      // } else {
+      // assert false : "Perspective was activated but not found";
+      // }
     }
   }
 
@@ -377,6 +329,54 @@ public class GdtPlugin extends AbstractGooglePlugin {
       // This should never happen; the workbench must be started by the time
       // this code is executed
     }
+  }
+
+  @Override
+  public void start(BundleContext context) throws Exception {
+    super.start(context);
+    plugin = this;
+    logger = new Logger(this);
+
+    // Force the installation id initialization before SDK registration.
+    getInstallationId();
+
+    GdtPreferences.registerSdks();
+    ProjectUtilities.setWebAppProjectCreatorFactory(WebAppProjectCreator.FACTORY);
+
+    /*
+     * Execute this on the UI thread. This has the effect of delaying the
+     * execution until the Workbench is running and the UI is available. This is
+     * necessary because the code in this method manipulates the Workbench UI.
+     */
+    Display.getDefault().asyncExec(new Runnable() {
+      public void run() {
+        maybeAddNewWizardActionsToWorkbench();
+      }
+    });
+
+    LaunchConfigAffectingChangesListener.INSTANCE.start();
+
+    // Load problem severities
+    GdtProblemSeverities.initializeInstance(new Class<?>[]{
+        AppEngineProblemType.class, GWTProblemType.class,
+        RemoteServiceProblemType.class, UiBinderJavaProblemType.class,
+        ClientBundleProblemType.class, ProjectStructureOrSdkProblemType.class,
+        UiBinderTemplateProblemType.class},
+        GdtPreferences.getEncodedProblemSeverities());
+
+    rebuildGoogleProjectsIfPluginVersionChanged();
+
+    new ProjectMigrator().migrate();
+  }
+
+  @Override
+  public void stop(BundleContext context) throws Exception {
+    LaunchConfigAffectingChangesListener.INSTANCE.stop();
+
+    plugin = null;
+    logger = null;
+
+    super.stop(context);
   }
 
 }

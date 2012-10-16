@@ -5,6 +5,7 @@ Bundle-SymbolicName: com.google.gdt.eclipse.managedapis;singleton:=true
 Bundle-Version: 0.0.0.qualifier
 Export-Package: com.google.gdt.eclipse.managedapis,
  com.google.gdt.eclipse.managedapis.extensiontypes,
+ com.google.gdt.eclipse.managedapis.impl,
  com.google.gdt.eclipse.managedapis.ui,
  com.google.gdt.googleapi.core
 Bundle-Vendor: %providerName
@@ -14,7 +15,6 @@ Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.jdt.ui,
  org.eclipse.jdt.core,
  org.eclipse.jdt.launching,
- org.eclipse.update.core,
  org.eclipse.ui,
  org.eclipse.ui.ide,
  org.apache.ant,

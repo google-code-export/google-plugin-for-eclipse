@@ -2,19 +2,6 @@
 <?eclipse version="3.4"?>
 <plugin>
    <extension
-         point="org.eclipse.ui.newWizards">
-      <wizard
-            category="com.google.gdt.eclipse.suite.newWizards"
-            class="com.google.gdt.eclipse.appengine.rpc.wizards.CreateRPCServiceLayerWizard"
-            finalPerspective="org.eclipse.jdt.ui.JavaPerspective"
-            hasPages="true"
-            icon="icons/gdt-new-rpc_16.png"
-            id="com.google.gdt.eclipse.appengine.rpc.wizards.SampleNewWizard"
-            name="RPC Service"
-            preferredPerspectives="org.eclipse.jdt.ui.JavaPerspective">
-      </wizard>
-   </extension>
-   <extension
          id="appengineConnectedNature"
          name="App Engine Connected"
          point="org.eclipse.core.resources.natures">

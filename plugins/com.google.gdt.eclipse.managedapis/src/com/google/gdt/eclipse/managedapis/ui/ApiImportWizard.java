@@ -168,7 +168,7 @@ public class ApiImportWizard extends Wizard implements IImportWizard {
   public boolean setProject(IProject project) throws CoreException {
     this.project = project;
 
-    if (project != null && AppEngineCheckDialog.isAppEngineProject(project)) {
+    if (project != null && AppEngineAndroidCheckDialog.isAppEngineAndroidProject(project)) {
       ManagedApiListingSourceFactory sourceFactory = new ManagedApiListingSourceFactory();
       sourceFactory.setApiDirectoryFactory(
           ManagedApiPlugin.getDefault().getApiDirectoryFactory());

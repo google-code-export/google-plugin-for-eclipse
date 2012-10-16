@@ -20,9 +20,16 @@ Require-Bundle: com.google.gdt.eclipse.platform.shared;visibility:=reexport,
  org.eclipse.equinox.p2.operations,
  org.eclipse.jdt.debug,
  org.eclipse.jdt.debug.ui,
- org.objectweb.asm
+ org.mortbay.jetty.server,
+ org.mortbay.jetty.util,
+ org.objectweb.asm,
+ javax.servlet,
+ org.eclipse.jface.text,
+ org.eclipse.ltk.core.refactoring
 Export-Package: com.google.gdt.eclipse.platform.debug.ui,
  com.google.gdt.eclipse.platform.update,
+ com.google.gdt.eclipse.platform.jetty,
+ com.google.gdt.eclipse.platform.jdt.text.correction.proposals,
  org.eclipse.jdt.internal.debug.ui
 Bundle-ActivationPolicy: lazy
 Bundle-Localization: plugin

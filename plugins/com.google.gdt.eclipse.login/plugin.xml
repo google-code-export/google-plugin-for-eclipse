@@ -6,7 +6,7 @@
    <extension-point id="com.google.gdt.eclipse.login.loginListener" name="Login Listener" schema="schema/com.google.gdt.eclipse.login.loginListener.exsd"/>
 
    <extension point="org.eclipse.ui.menus">
-      <menuContribution locationURI="toolbar:org.eclipse.ui.trim.status?before=org.eclise.ui.internal.FastViewBar">
+      <menuContribution locationURI="toolbar:org.eclipse.ui.trim.status">
          <toolbar id="com.google.gdt.eclipse.login.status.trim">
              <control class="com.google.gdt.eclipse.login.ui.LoginTrimContribution"></control>
          </toolbar>

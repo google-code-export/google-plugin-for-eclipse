@@ -14,6 +14,7 @@
  *******************************************************************************/
 package com.google.appengine.eclipse.webtools.update;
 
+import com.google.appengine.eclipse.webtools.facet.JpaFacetHelper;
 import com.google.gdt.eclipse.core.StringUtilities;
 import com.google.gdt.eclipse.core.update.internal.core.UpdateQueryArgContributor;
 
@@ -29,7 +30,7 @@ public class WebtoolsUpdateQueryArgContributor
     implements UpdateQueryArgContributor {
 
   public String getContribution(IProject project) {
-    if (project == null) {
+    if (project == null || !JpaFacetHelper.areJpaDepsAvailable()) {
       return "";
     }
     // Log JPA Platform ID.

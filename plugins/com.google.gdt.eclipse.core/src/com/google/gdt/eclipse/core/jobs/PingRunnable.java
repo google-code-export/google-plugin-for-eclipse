@@ -19,8 +19,6 @@ import com.google.gdt.eclipse.core.CorePlugin;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
-import org.eclipse.update.internal.core.connection.ConnectionFactory;
-import org.eclipse.update.internal.core.connection.IResponse;
 
 import java.io.IOException;
 import java.net.URL;
@@ -42,8 +40,8 @@ public class PingRunnable implements IRunnableWithProgressAndStatus {
     IStatus jobStatus = Status.OK_STATUS;
 
     try {
-      IResponse response = ConnectionFactory.get(url);
-      response.getInputStream(); // this forces it to actually hit the URL
+      url.openConnection();
+      url.openStream();
     } catch (IOException e) {
       jobStatus = new Status(Status.ERROR, CorePlugin.PLUGIN_ID,
           "IO error while downloading " + url.toString(), e);

@@ -14,20 +14,16 @@
  *******************************************************************************/
 package com.google.gdt.eclipse.mobile.android.wizards;
 
-import com.android.ide.eclipse.adt.AdtPlugin;
-import com.google.appengine.eclipse.core.nature.GaeNature;
-import com.google.gdt.eclipse.core.projects.IWebAppProjectCreator;
-import com.google.gdt.eclipse.core.sdk.Sdk.SdkException;
+import com.google.gdt.eclipse.appengine.swarm_backend.wizards.GenerateBackendProject;
 import com.google.gdt.eclipse.mobile.android.GdtAndroidImages;
 import com.google.gdt.eclipse.mobile.android.GdtAndroidPlugin;
 import com.google.gdt.eclipse.mobile.android.wizards.helpers.AndroidProjectCreator;
-import com.google.gdt.eclipse.mobile.android.wizards.helpers.AppEngineProjectCreator;
 import com.google.gdt.eclipse.mobile.android.wizards.helpers.ProjectCreationConstants;
-import com.google.gdt.eclipse.mobile.android.wizards.helpers.ProjectResourceUtils;
-import com.google.gwt.eclipse.core.nature.GWTNature;
 
+import com.android.ide.eclipse.adt.AdtPlugin;
 import com.android.io.StreamException;
 
+import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -40,12 +36,10 @@ import org.eclipse.jdt.ui.actions.OpenJavaPerspectiveAction;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.ui.INewWizard;
 import org.eclipse.ui.IWorkbench;
-import org.osgi.service.prefs.BackingStoreException;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
-import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -62,14 +56,6 @@ public class NewAndroidCloudProjectWizard extends NewElementWizard implements
   private HashMap<String, String> androidProjectDictionary;
   // android project
   private Map<String, Object> androidProjectParameters;
-  private ConfigureC2dmWizardPage configureC2dmPage;
-  private String gaePackageName;
-  private String gaeProjectName;
-  private IPath gwtSdkInstallationPath;
-  // web application project
-  private IPath gaeSdkContainerPath;
-  private IPath gwtSdkContainerPath;
-  private URI locationURI;
   private NewAndroidCloudProjectWizardPage newProjectPage;
 
   public NewAndroidCloudProjectWizard() {
@@ -82,14 +68,11 @@ public class NewAndroidCloudProjectWizard extends NewElementWizard implements
   public void addPages() {
     newProjectPage = new NewAndroidCloudProjectWizardPage();
     addPage(newProjectPage);
-    configureC2dmPage = new ConfigureC2dmWizardPage(newProjectPage);
-    addPage(configureC2dmPage);
   }
 
   @Override
   public boolean canFinish() {
-    return newProjectPage.isPageComplete()
-        && (configureC2dmPage.validCredentials());
+    return newProjectPage.isPageComplete();
   }
 
   @Override
@@ -119,59 +102,6 @@ public class NewAndroidCloudProjectWizard extends NewElementWizard implements
     return finished;
   }
 
-  @Override
-  protected void finishPage(IProgressMonitor monitor)
-      throws InterruptedException, CoreException {
-
-    try {
-      // create the android project
-
-      configureC2dmPage.performFinish(monitor);
-
-      IWebAppProjectCreator wapc = AppEngineProjectCreator.FACTORY.create();
-
-      wapc.setProjectName(gaeProjectName + ProjectCreationConstants.GAE_PROJECT_NAME_SUFFIX);
-      wapc.setPackageName(gaePackageName);
-      wapc.setLocationURI(locationURI);
-      wapc.setTemplates("mobilewebapp");
-      wapc.setTemplateSources(ProjectResourceUtils.getEmbeddedFileUrl(
-          "lib/mobilewebapp-template.jar").toString());
-      wapc.addContainerPath(gaeSdkContainerPath);
-      wapc.addNature(GaeNature.NATURE_ID);
-      wapc.addContainerPath(gwtSdkContainerPath);
-      wapc.addNature(GWTNature.NATURE_ID);
-      wapc.create(monitor);
-
-      AndroidProjectCreator androidpc = AndroidProjectCreator.createNewAndroidProjectCreator();
-      androidpc.setAndroidProjectDictionary(androidProjectDictionary);
-      androidpc.setAndroidProjectParameters(androidProjectParameters);
-      androidpc.setGwtSdkInstallationPath(gwtSdkInstallationPath);
-      androidpc.create(monitor);
-
-    } catch (MalformedURLException e) {
-      throw new CoreException(new Status(IStatus.ERROR,
-          GdtAndroidPlugin.PLUGIN_ID, e.getMessage(), e));
-    } catch (UnsupportedEncodingException e) {
-      throw new CoreException(new Status(IStatus.ERROR,
-          GdtAndroidPlugin.PLUGIN_ID, e.getMessage(), e));
-    } catch (SdkException e) {
-      throw new CoreException(new Status(IStatus.ERROR,
-          GdtAndroidPlugin.PLUGIN_ID, e.getMessage(), e));
-    } catch (ClassNotFoundException e) {
-      throw new CoreException(new Status(IStatus.ERROR,
-          GdtAndroidPlugin.PLUGIN_ID, e.getMessage(), e));
-    } catch (IOException e) {
-      throw new CoreException(new Status(IStatus.ERROR,
-          GdtAndroidPlugin.PLUGIN_ID, e.getMessage(), e));
-    } catch (BackingStoreException e) {
-      throw new CoreException(new Status(IStatus.ERROR,
-          GdtAndroidPlugin.PLUGIN_ID, e.getMessage(), e));
-    } catch (StreamException e) {
-      throw new CoreException(new Status(IStatus.ERROR,
-          GdtAndroidPlugin.PLUGIN_ID, e.getMessage(), e));
-    }
-  }
-
   private void getAndroidProjectParameters() {
     Map<String, Object> mParameters = new HashMap<String, Object>();
 
@@ -188,8 +118,6 @@ public class NewAndroidCloudProjectWizard extends NewElementWizard implements
         newProjectPage.getMinSdkVersion());
     mParameters.put(ProjectCreationConstants.PARAM_SDK_TARGET,
         newProjectPage.getAndroidSdkTarget());
-    mParameters.put(ProjectCreationConstants.PARAM_C2DM_EMAIL,
-        configureC2dmPage.getEmailId());
     androidProjectParameters = mParameters;
 
     // create a dictionary of string that will contain name+content.
@@ -212,15 +140,40 @@ public class NewAndroidCloudProjectWizard extends NewElementWizard implements
     IPath path = newProjectPage.getLocationPath();
     androidProjectParameters.put(ProjectCreationConstants.PARAM_PROJECT_PATH,
         path);
-    gwtSdkInstallationPath = newProjectPage.getGWTSdkInstallationPath();
   }
 
   private void getGaeFieldParameters() {
-    gaeProjectName = newProjectPage.getGaeProjectName();
-    gaeSdkContainerPath = newProjectPage.getGaeSdkContainerPath();
-    gwtSdkContainerPath = newProjectPage.getGWTSdkContainerPath();
-    gaePackageName = newProjectPage.getGaePackageName();
-    locationURI = newProjectPage.getCreationLocationURI();
+    newProjectPage.getGaeProjectName();
+    newProjectPage.getGaeSdkContainerPath();
+    newProjectPage.getGaePackageName();
+    newProjectPage.getCreationLocationURI();
+  }
+
+  @Override
+  protected void finishPage(IProgressMonitor monitor)
+ throws CoreException {
+
+    try {
+      // create the android project
+      AndroidProjectCreator androidpc = AndroidProjectCreator.createNewAndroidProjectCreator();
+      androidpc.setAndroidProjectDictionary(androidProjectDictionary);
+      androidpc.setAndroidProjectParameters(androidProjectParameters);
+      IProject androidProject = androidpc.create(monitor);
+      new GenerateBackendProject().generateBackendProject(androidProject, monitor);
+
+    } catch (MalformedURLException e) {
+      throw new CoreException(new Status(IStatus.ERROR,
+          GdtAndroidPlugin.PLUGIN_ID, e.getMessage(), e));
+    } catch (UnsupportedEncodingException e) {
+      throw new CoreException(new Status(IStatus.ERROR,
+          GdtAndroidPlugin.PLUGIN_ID, e.getMessage(), e));
+    } catch (IOException e) {
+      throw new CoreException(new Status(IStatus.ERROR,
+          GdtAndroidPlugin.PLUGIN_ID, e.getMessage(), e));
+    } catch (StreamException e) {
+      throw new CoreException(new Status(IStatus.ERROR,
+          GdtAndroidPlugin.PLUGIN_ID, e.getMessage(), e));
+    }
   }
 
 }

@@ -14,6 +14,7 @@
  *******************************************************************************/
 package com.google.appengine.eclipse.core.sdk;
 
+import com.google.appengine.eclipse.core.AppEngineCorePluginLog;
 import com.google.appengine.eclipse.core.properties.GaeProjectProperties;
 import com.google.gdt.eclipse.core.ClasspathUtilities;
 import com.google.gdt.eclipse.core.sdk.Sdk;
@@ -29,6 +30,8 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import javax.management.ReflectionException;
 
 /**
  * Updates the managed WAR output directory's WEB-INF/lib directory so it
@@ -65,8 +68,26 @@ public class AppEngineUpdateWebInfFolderCommand extends
       return Collections.emptyList();
     }
 
+    // Return a list of all possible files that the SDK could have added to WEB-INF.
     AppEngineBridge appEngineBridge = AppEngineBridgeFactory.getAppEngineBridge(previousSdkInstallationPath);
     if (appEngineBridge != null) {
+      List<File> toReturn = new ArrayList<File>();
+      toReturn.addAll(appEngineBridge.getUserLibFiles());
+      if (sdk instanceof GaeSdk
+          && (((GaeSdk) sdk).getCapabilities().contains(GaeSdkCapability.OPTIONAL_USER_LIB))) {
+        try {
+          toReturn.addAll(appEngineBridge.getLatestUserLibFiles(false));
+          for (String version : appEngineBridge.getUserLibVersions("datanucleus")) {
+            List<File> userLibFiles = appEngineBridge.getUserLibFiles("datanuclues", version);
+            if (userLibFiles != null) {
+              toReturn.addAll(userLibFiles);
+            }
+          }
+          return toFileNames(toReturn);
+        } catch (ReflectionException e) {
+          AppEngineCorePluginLog.logError(e.getTargetException(), e.getLocalizedMessage());
+        }
+      }
       return toFileNames(appEngineBridge.getUserLibFiles());
     }
 

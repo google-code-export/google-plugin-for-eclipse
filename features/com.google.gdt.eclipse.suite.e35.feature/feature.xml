@@ -224,5 +224,19 @@
          install-size="0"
          version="0.0.0.qualifier"
          unpack="false"/>
+
+   <plugin
+         id="com.google.gdt.eclipse.appengine.swarm"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+
+   <plugin
+         id="com.google.gdt.eclipse.appengine.swarm_backend"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
 </feature>
 

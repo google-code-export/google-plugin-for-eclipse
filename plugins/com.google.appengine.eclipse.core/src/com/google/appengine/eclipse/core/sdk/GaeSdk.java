@@ -50,6 +50,8 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
+import javax.management.ReflectionException;
+
 /**
  * Represents a GAE SDK and provides a URLClassLoader that can be used to load
  * the API classes.
@@ -93,11 +95,15 @@ public class GaeSdk extends AbstractSdk {
     public IClasspathEntry[] getClasspathEntries() {
       try {
         IClasspathEntry[] rawClasspath = javaProject.getRawClasspath();
+        List<IClasspathEntry> classpathContainerEntries = new ArrayList<IClasspathEntry>();
         for (IClasspathEntry rawClasspathEntry : rawClasspath) {
           if (SdkClasspathContainer.isContainerClasspathEntry(
               GaeSdkContainer.CONTAINER_ID, rawClasspathEntry)) {
-            return new IClasspathEntry[] {rawClasspathEntry};
+            classpathContainerEntries.add(rawClasspathEntry);
           }
+        }
+        if (!classpathContainerEntries.isEmpty()) {
+          return classpathContainerEntries.toArray(NO_ICLASSPATH_ENTRIES);
         }
 
         IPath installationPath = getInstallationPath();
@@ -119,13 +125,13 @@ public class GaeSdk extends AbstractSdk {
      * the appropriate libaries in their correct directories under the SDK
      * installation root), then the path to the root of the SDK installation is
      * returned.
-     * 
+     *
      * If the SDK is not in the correct structure of a valid GAE SDK, but has
      * one or more of the appropriate libraries on the project's build path,
      * then the path to this library is returned.
-     * 
+     *
      * In all other cases, <code>null</code> is returned.
-     * 
+     *
      * TODO: Clean up the interaction between the
      * {@link #findSdkFor(IJavaProject)} method and this method; it is
      * confusing, at best, and it makes the contract of
@@ -190,6 +196,9 @@ public class GaeSdk extends AbstractSdk {
     }
   }
 
+  /** List of locations to search for source code attachment. */
+  private static final String[] SOURCE_LOCATIONS = {"src/orm", "src/user"};
+
   /**
    * appengine-api marker type.
    */
@@ -209,6 +218,12 @@ public class GaeSdk extends AbstractSdk {
       "datanucleus-appengine-1.0.10.final.jar", "datanucleus-core-1.1.5.jar", "datanucleus-jpa-1.1.5.jar",
       "geronimo-jpa_3.0_spec-1.1.1.jar", "geronimo-jta_1.1_spec-1.1.1.jar", "jdo2-api-2.3-eb.jar");
 
+
+  // TODO: Get this info from the Appengine SDK info.
+  public static final Set<String> GAE_DATANUCLEUS_FILES = Sets.newHashSet(
+      "datanucleus-appengine-1.0.10.final.jar", "datanucleus-core-1.1.5.jar", "datanucleus-jpa-1.1.5.jar",
+      "geronimo-jpa_3.0_spec-1.1.1.jar", "geronimo-jta_1.1_spec-1.1.1.jar", "jdo2-api-2.3-eb.jar");
+
   private static final SdkFactory<GaeSdk> factory = new SdkFactory<GaeSdk>() {
     public GaeSdk newInstance(String name, IPath sdkHome) {
       return new GaeSdk(name, sdkHome);
@@ -221,7 +236,7 @@ public class GaeSdk extends AbstractSdk {
    * Returns a {@link GaeSdk} associated with the project or <code>null</code>
    * if the project was not associated with an
    * {@link com.google.gdt.eclipse.core.sdk.Sdk}.
-   * 
+   *
    * @param javaProject project that might be associated with a {@link GaeSdk}
    * @return {@link GaeSdk} instance associated with the project or <code>null
    *         </code>
@@ -298,7 +313,7 @@ public class GaeSdk extends AbstractSdk {
      * GAE SDK 1.4.3 includes support for deploying to appengine using oauth
      * authentication. If the SDK this project is using is older than 1.4.3,
      * use the appengine-tool-api jar bundled with GPE rather than the one
-     * in the GAE SDK. 
+     * in the GAE SDK.
      */
     if (SdkUtils.compareVersionStrings(getVersion(), "1.4.3") >= 0) {
       return AppEngineBridgeFactory.getAppEngineBridge(getInstallationPath());
@@ -308,7 +323,7 @@ public class GaeSdk extends AbstractSdk {
   }
 
   /**
-   * 
+   *
    * Returns the set of capabilities supported by this SDK.
    */
   public Set<GaeSdkCapability> getCapabilities() {
@@ -324,45 +339,73 @@ public class GaeSdk extends AbstractSdk {
   public IClasspathEntry[] getClasspathEntries() {
     try {
       AppEngineBridge appEngineBridge = AppEngineBridgeFactory.getAppEngineBridge(getInstallationPath());
-      List<File> classpathFiles = appEngineBridge.getBuildclasspathFiles();
-
-      IPath javadocLocation = getInstallationPath().append(
-          new Path("docs/javadoc"));
-      IClasspathAttribute[] extraAttributes = new IClasspathAttribute[0];
-
-      if (javadocLocation.toFile().exists()) {
-        extraAttributes = new IClasspathAttribute[] {JavaCore.newClasspathAttribute(
-            IClasspathAttribute.JAVADOC_LOCATION_ATTRIBUTE_NAME,
-            javadocLocation.toFile().toURI().toString())};
+      List<File> classpathFiles = null;
+      try {
+        classpathFiles = appEngineBridge.getBuildclasspathFiles();
+      } catch (ReflectionException e) {
+        AppEngineCorePluginLog.logError(e.getLocalizedMessage(), e.getTargetException());
       }
-
-      List<IClasspathEntry> buildpath = new ArrayList<IClasspathEntry>();
-
-      // TODO: This approach only adds the source to the ORM jars,
-      // for the moment (these are the only jars with separate source provided).
-      // We'll need a more general approach to finding the right source
-      // attachment later.
-      for (File file : classpathFiles) {
-        IPath path = new Path(file.getAbsolutePath());
-
-        String possibleSourceName = file.getName().replace(".jar", "-src.zip");
-        IPath possibleSource = getInstallationPath().append("src/orm").append(
-            possibleSourceName);
-
-        IPath sourcePath = possibleSource.toFile().exists() ? possibleSource
-            : null;
-
-        buildpath.add(JavaCore.newLibraryEntry(path, sourcePath, null,
-            new IAccessRule[0], extraAttributes, false));
-      }
-
-      return buildpath.toArray(NO_ICLASSPATH_ENTRIES);
+      return getClasspathEntries(classpathFiles);
     } catch (CoreException e) {
       // Validate method will tell you what is wrong.
       return NO_ICLASSPATH_ENTRIES;
     }
   }
+
+  /**
+   * Get classpath entries depending on the datanucleus version.
+   * @param javaProject Project for which the classpath entries are required.
+   */
+  public IClasspathEntry[] getClasspathEntries(IJavaProject javaProject) {
+    try {
+      AppEngineBridge appEngineBridge = AppEngineBridgeFactory.getAppEngineBridge(
+          getInstallationPath());
+      List<File> classpathFiles = null;
+      if (!getCapabilities().contains(GaeSdkCapability.OPTIONAL_USER_LIB)) {
+        classpathFiles = appEngineBridge.getBuildclasspathFiles();
+      } else {
+        classpathFiles = appEngineBridge.getBuildclasspathFiles(false);
+        if (GaeProjectProperties.getGaeDatanucleusEnabled(javaProject.getProject())) {
+          String version = GaeProjectProperties.getGaeDatanucleusVersion(javaProject.getProject());
+          if (version == null || version.isEmpty()) {
+            version = "v1";
+          }
+          classpathFiles.addAll(appEngineBridge.getUserLibFiles("datanucleus", version));
+        }
+      }
+      return getClasspathEntries(classpathFiles);
+    } catch (CoreException e) {
+      // Validate method will tell you what is wrong.
+      return NO_ICLASSPATH_ENTRIES;
+    } catch (ReflectionException e) {
+      return NO_ICLASSPATH_ENTRIES;
+    }
+  }
   
+  public List<String> getLibNames() {
+    try {
+      AppEngineBridge bridge = getAppEngineBridge();
+      return bridge.getUserLibNames();
+    } catch (CoreException e) {
+      AppEngineCorePluginLog.logError("Unable to get appengine bridge.", e);
+    } catch (ReflectionException e) {
+      AppEngineCorePluginLog.logError(e.getLocalizedMessage(), e.getTargetException());
+    }
+    return null;
+  }
+
+  public List<String> getLibVersions(String libName) {
+    try {
+      AppEngineBridge bridge = getAppEngineBridge();
+      return bridge.getUserLibVersions(libName);
+    } catch (CoreException e) {
+      AppEngineCorePluginLog.logError("Unable to get appengine bridge.", e);
+    } catch (ReflectionException e) {
+      AppEngineCorePluginLog.logError(e.getLocalizedMessage(), e.getTargetException());
+    }
+    return null;
+  }
+
   public String getVersion() {
     try {
       AppEngineBridge bridge = getAppEngineBridge();
@@ -376,15 +419,37 @@ public class GaeSdk extends AbstractSdk {
   public File[] getWebAppClasspathFiles(IProject project) {
     try {
       AppEngineBridge appEngineBridge = AppEngineBridgeFactory.getAppEngineBridge(getInstallationPath());
-      List<File> userLibFiles = new ArrayList<File>(appEngineBridge.getUserLibFiles());
-      if (!GaeProjectProperties.getGaeDatanucleusEnabled(project)) {
-        for (File file : appEngineBridge.getUserLibFiles()) {
-          if (GAE_DATANUCLEUS_FILES.contains(file.getName())) {
-            userLibFiles.remove(file);
+      List<File> userLibFiles = null;
+      if (!getCapabilities().contains(GaeSdkCapability.OPTIONAL_USER_LIB)) {
+        userLibFiles = new ArrayList<File>(appEngineBridge.getUserLibFiles());
+        if (!GaeProjectProperties.getGaeDatanucleusEnabled(project)) {
+          for (File file : appEngineBridge.getUserLibFiles()) {
+            if (GAE_DATANUCLEUS_FILES.contains(file.getName())) {
+              userLibFiles.remove(file);
+            }
           }
         }
+      } else {
+        try {
+          userLibFiles = new ArrayList<File>();
+          userLibFiles.addAll(appEngineBridge.getLatestUserLibFiles(false));
+          if (GaeProjectProperties.getGaeDatanucleusEnabled(project)) {
+            String datanucleusVersion = GaeProjectProperties.getGaeDatanucleusVersion(project);
+            if (datanucleusVersion == null || datanucleusVersion.isEmpty()) {
+              // The project was created with v1 datanucleus files.
+              datanucleusVersion = "v1";
+            }
+            List<File> someUserLibFiles = appEngineBridge.getUserLibFiles(
+                "datanucleus", datanucleusVersion);
+            if (someUserLibFiles != null) {
+              userLibFiles.addAll(someUserLibFiles);
+            }
+          }
+        } catch (ReflectionException e) {
+          AppEngineCorePluginLog.logError(e.getLocalizedMessage(), e.getTargetException());
+          return NO_FILES;
+        }
       }
-
       return userLibFiles.toArray(NO_FILES);
     } catch (CoreException e) {
       // Validate method will tell you what is wrong.
@@ -418,12 +483,63 @@ public class GaeSdk extends AbstractSdk {
       validateAllFilesExist(appEngineBridge.getSharedLibFiles());
       validateAllFilesExist(appEngineBridge.getToolsLibFiles());
       validateAllFilesExist(appEngineBridge.getUserLibFiles());
+      if (SdkUtils.compareVersionStrings(appEngineBridge.getSdkVersion(),
+          AppEngineBridge.MIN_VERSION_FOR_OPT_DATANUCLEUS_LIB) >= 0) {
+        for (String userLibName : appEngineBridge.getUserLibNames()) {
+          for (String userLibVersion : appEngineBridge.getUserLibVersions(userLibName)) {
+            validateAllFilesExist(appEngineBridge.getUserLibFiles(userLibName, userLibVersion));
+          }
+        }
+        for (String toolsLibName : appEngineBridge.getToolsLibNames()) {
+          for (String toolsLibVersion : appEngineBridge.getToolsLibVersions(toolsLibName)) {
+            validateAllFilesExist(
+                appEngineBridge.getToolsLibFiles(toolsLibName, toolsLibVersion));
+          }
+        }
+      }
       return Status.OK_STATUS;
     } catch (CoreException e) {
       return e.getStatus();
     } catch (RuntimeException e) {
       return new Status(IStatus.ERROR, AppEngineCorePlugin.PLUGIN_ID,
           e.getLocalizedMessage(), e);
+    } catch (ReflectionException e) {
+      return new Status(IStatus.ERROR, AppEngineCorePlugin.PLUGIN_ID, e.getLocalizedMessage(),
+          e.getTargetException());
     }
+  }
+
+  private IClasspathEntry[] getClasspathEntries(List<File> classpathFiles) {
+
+    IPath javadocLocation = getInstallationPath().append(
+        new Path("docs/javadoc"));
+    IClasspathAttribute[] extraAttributes = new IClasspathAttribute[0];
+
+    if (javadocLocation.toFile().exists()) {
+      extraAttributes = new IClasspathAttribute[] {JavaCore.newClasspathAttribute(
+          IClasspathAttribute.JAVADOC_LOCATION_ATTRIBUTE_NAME,
+          javadocLocation.toFile().toURI().toString())};
+    }
+
+    List<IClasspathEntry> buildpath = new ArrayList<IClasspathEntry>();
+
+    for (File file : classpathFiles) {
+      IPath path = new Path(file.getAbsolutePath());
+
+      String possibleSourceName = file.getName().replace(".jar", "-src.zip");
+      IPath sourcePath = null;
+      for (String source : SOURCE_LOCATIONS) {
+        IPath possibleSource = getInstallationPath().append(source).append(possibleSourceName);
+        if (possibleSource.toFile().exists()) {
+          sourcePath = possibleSource;
+          break;
+        }
+      }
+
+      buildpath.add(JavaCore.newLibraryEntry(path, sourcePath, null,
+          new IAccessRule[0], extraAttributes, false));
+    }
+
+    return buildpath.toArray(NO_ICLASSPATH_ENTRIES);
   }
 }

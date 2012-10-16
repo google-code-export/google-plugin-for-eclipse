@@ -1,0 +1,16 @@
+<project name="com.google.gwt.eclipse.sdkbundle.e42.feature"
+         default="build"
+         basedir=".">
+    <property name="feature_name"
+              value="com.google.gwt.eclipse.sdkbundle.e42.feature" />
+    <property name="project.tail" value="features/${feature_name}" />
+
+    <import file="${build.project.dir}/common.ant.xml" />
+    <property name="feature.version" value="${gwt.sdkbundle.version}" />
+
+    <extract.license.file zip.file="${gwt.sdk}"
+                          property.name="feature.license"
+                          license.file="COPYING" />
+
+    <import file="${build.project.dir}/features/features.common.ant.xml" />
+</project>

@@ -20,10 +20,9 @@ import com.google.gdt.eclipse.core.StatusUtilities;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.jobs.Job;
-import org.eclipse.update.internal.core.connection.ConnectionFactory;
-import org.eclipse.update.internal.core.connection.IResponse;
 
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.URL;
 
 /**
@@ -64,7 +63,8 @@ public class UrlChecker {
       }
 
       try {
-        IResponse response = ConnectionFactory.get(url);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        url.openStream();
         /*
          * Even though we do nothing with the InputStream, we must call this
          * method otherwise getStatusCode will call it indirectly but it will
@@ -73,8 +73,8 @@ public class UrlChecker {
          * added 302 (redirect) because some apps redirect to a login
          * page, and then redirect back to the app
          */
-        response.getInputStream();
-        if (response.getStatusCode() == 200 || response.getStatusCode() == 302) {
+        if (connection.getResponseCode() == 200 
+            || connection.getResponseCode() == 302) {
           listener.urlCheckerFinished(true);
           return StatusUtilities.OK_STATUS;
         }

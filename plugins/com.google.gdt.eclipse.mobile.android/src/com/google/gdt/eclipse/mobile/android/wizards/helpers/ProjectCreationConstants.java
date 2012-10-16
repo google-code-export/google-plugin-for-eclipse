@@ -24,8 +24,6 @@ import com.android.sdklib.SdkConstants;
 @SuppressWarnings("restriction")
 public class ProjectCreationConstants {
 
-  public static final String ADT_PROJECT_NAME_SUFFIX = "-Android"; //$NON-NLS-1$
-  public static final String GAE_PROJECT_NAME_SUFFIX = "-AppEngine"; //$NON-NLS-1$
   public static final String SHARED_FOLDER_NAME = "shared"; //$NON-NLS-1$
 
   public static final String PARAM_SDK_TOOLS_DIR = "ANDROID_SDK_TOOLS"; //$NON-NLS-1$
@@ -38,11 +36,12 @@ public class ProjectCreationConstants {
   public static final String PARAM_C2DM_EMAIL = "C2DM_EMAIL"; //$NON-NLS-N$
   public static final String PARAM_PROJECT_PATH = "PROJECT_PATH"; //$NON-NLS-N$
 
-  public static final String MAIN_MENU_FILE = "main_menu.xml"; //$NON-NLS-1$
+  public static final String MAIN_MENU_FILE = "activity_ping.xml"; //$NON-NLS-1$
 
   public static final String STRING_RSRC_PREFIX = "@string/"; //$NON-NLS-1$
   public static final String STRING_APP_NAME = "app_name"; //$NON-NLS-1$
   public static final String STRINGS_FILE = "strings.xml"; //$NON-NLS-1$
+  public static final String STYLES_FILE = "styles.xml";
   
   public static final String WS_SEP = "/";
 
@@ -92,5 +91,7 @@ public class ProjectCreationConstants {
   public static final String JDT_PREFS = "org.eclipse.jdt.core.prefs"; //$NON-NLS-N$
   public static final String FACTORYPATH_FILE = ".factorypath"; //$NON-NLS-N$
   public static final String APT_FOLDER = ".apt_generated"; //$NON-NLS-N$
+
+  public static final String CONFIG_DIRECTORY = "config/";
 
 }

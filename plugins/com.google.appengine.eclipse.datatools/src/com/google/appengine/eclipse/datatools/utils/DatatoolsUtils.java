@@ -194,9 +194,12 @@ public class DatatoolsUtils {
       
       String profileId = (vendor == Vendor.GOOGLE) ?
           DTP_GOOGLE_CLOUD_SQL_CONNECTION_PROFILE : DTP_MYSQL_CONNECTION_PROFILE;
-          
+
+      // Create the connection profile, and connect it.
+      // (But don't use the auto-connect setting, because that will result in
+      // profile not getting created if auto-connect fails.)
       profileManager.createProfile(getProfileName(displayableId), getProfileId(displayableId), 
-          profileId, baseProperties);
+          profileId, baseProperties).connect();
     } catch (ConnectionProfileException e) {
       GoogleDatatoolsPluginLog.logError(e, "Could not create DTP connection profile");
     }
@@ -214,4 +217,3 @@ public class DatatoolsUtils {
     createProfileHelper(baseProperties, displayableId, vendor);
   }
 }
-

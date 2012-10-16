@@ -18,7 +18,7 @@ import com.google.gdt.eclipse.core.sdk.SdkUtils;
 
 /**
  * Enum of GAE SDK capabilities.
- * 
+ *
  * Simple version checks are supported using min/max ranges but more complex
  * validations can be implemented by overriding the check() method.
  */
@@ -26,7 +26,9 @@ public enum GaeSdkCapability {
   /**
    * High replication datastore support.
    */
-  HRD("1.5.1"), GOOGLE_CLOUD_SQL("1.6.1");
+  HRD("1.5.1"),
+  GOOGLE_CLOUD_SQL("1.6.1"),
+  OPTIONAL_USER_LIB(AppEngineBridge.MIN_VERSION_FOR_OPT_DATANUCLEUS_LIB);
 
   private final String minVersion, maxVersion;
 

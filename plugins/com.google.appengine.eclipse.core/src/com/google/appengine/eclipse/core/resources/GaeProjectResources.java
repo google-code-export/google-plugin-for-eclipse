@@ -41,8 +41,20 @@ public class GaeProjectResources {
     return getResourceAsStream("favicon.ico");
   }
 
-  public static InputStream createJdoConfigXmlSource() {
-    return getResourceAsStream("jdoconfig.xml.template");
+  public static InputStream createJdoConfigXmlSource(String version) {
+    if (version.compareTo("v2") == 0) {
+      return getResourceAsStream("jdoconfig.xml.v2.template");
+    } else {
+      return getResourceAsStream("jdoconfig.xml.template");
+    }
+  }
+
+  public static InputStream createPersistenceXmlSource(String version) {
+    if (version.compareTo("v2") == 0) {
+      return getResourceAsStream("persistence.xml.v2.template");
+    } else {
+      return getResourceAsStream("persistence.xml.template");
+    }
   }
 
   public static String createSampleServletSource(String servletPackageName,
@@ -60,6 +72,11 @@ public class GaeProjectResources {
     return ResourceUtils.getResourceAsStreamAndFilterContents(
         GaeProjectResources.class, replacements, "WelcomePage.template");
   }
+  
+  public static InputStream createEmptyWebXml() throws CoreException {
+    return ResourceUtils.getResourceAsStreamAndFilterContents(
+        GaeProjectResources.class, new HashMap<String, String>(), "web.xml.template");
+  }
 
   private static InputStream getResourceAsStream(String resourceName) {
     return GaeProjectResources.class.getResourceAsStream(resourceName);
@@ -73,5 +90,4 @@ public class GaeProjectResources {
     return ResourceUtils.getResourceAsStringAndFilterContents(
         GaeProjectResources.class, replacements, "Servlet.java.template");
   }
-
 }

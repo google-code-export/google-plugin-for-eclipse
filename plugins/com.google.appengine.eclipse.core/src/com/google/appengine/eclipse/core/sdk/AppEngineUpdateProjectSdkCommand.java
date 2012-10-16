@@ -15,8 +15,10 @@
 package com.google.appengine.eclipse.core.sdk;
 
 import com.google.appengine.eclipse.core.preferences.GaePreferences;
+import com.google.appengine.eclipse.core.properties.GaeProjectProperties;
 import com.google.gdt.eclipse.core.ClasspathUtilities;
 import com.google.gdt.eclipse.core.sdk.Sdk;
+import com.google.gdt.eclipse.core.sdk.SdkClasspathContainer;
 import com.google.gdt.eclipse.core.sdk.UpdateProjectSdkCommand;
 import com.google.gdt.eclipse.core.sdk.UpdateWebInfFolderCommand;
 
@@ -25,6 +27,10 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.jdt.core.IClasspathEntry;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.JavaCore;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Command for updating a project to use an SDK container.
@@ -46,11 +52,11 @@ public class AppEngineUpdateProjectSdkCommand extends
       entry = JavaCore.getResolvedClasspathEntry(entry);
       IPath entryPath = entry.getPath();
       String fileName = entryPath.lastSegment();
-      if (fileName.matches("appengine\\-api.*\\.jar")) {
-        if (entryPath.segmentCount() > 3) {
+      if (fileName.matches("appengine\\-tools\\-api.*\\.jar")) {
+        if (entryPath.segmentCount() > 2) {
           // TODO: We should check that the jar exists on disk. Throw a
           // CoreException with a more informative message.
-          return entryPath.removeLastSegments(3);
+          return entryPath.removeLastSegments(2);
         }
       }
     }
@@ -61,6 +67,32 @@ public class AppEngineUpdateProjectSdkCommand extends
       GaeSdk oldSdk, GaeSdk newSdk, UpdateType updateType,
       UpdateWebInfFolderCommand updateWebInfFolderCommand) {
     super(javaProject, oldSdk, newSdk, updateType, updateWebInfFolderCommand);
+  }
+
+  // TODO: This function is essentially same as the one it overrides. It just adds datanucleus
+  // version to the containerPath. De-duplicate the code.
+  @Override
+  protected List<IClasspathEntry> computeBuildClasspathEntriesToAdd() {
+    GaeSdk newSdk = getNewSdk();
+    UpdateType updateType = getUpdateType();
+    if (newSdk != null) {
+      if (updateType == UpdateType.RAW) {
+        return Arrays.asList(newSdk.getClasspathEntries(getJavaProject()));
+      } else {
+        IPath containerPath = SdkClasspathContainer.computeContainerPath(getContainerId(), newSdk,
+            updateType == UpdateType.DEFAULT_CONTAINER
+                ? SdkClasspathContainer.Type.DEFAULT : SdkClasspathContainer.Type.NAMED);
+        if (GaeProjectProperties.getGaeDatanucleusEnabled(getJavaProject().getProject())) {
+          String datanucleusVersion = GaeProjectProperties.getGaeDatanucleusVersion(
+              getJavaProject().getProject());
+          if (datanucleusVersion != null && !datanucleusVersion.isEmpty()) {
+            containerPath = containerPath.append(datanucleusVersion);
+          }
+        }
+        return Collections.singletonList(JavaCore.newContainerEntry(containerPath));
+      }
+    }
+    return Collections.emptyList();
   }
 
   @Override

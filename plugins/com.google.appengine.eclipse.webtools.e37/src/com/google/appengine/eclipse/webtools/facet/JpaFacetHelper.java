@@ -14,6 +14,7 @@
  *******************************************************************************/
 package com.google.appengine.eclipse.webtools.facet;
 
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jpt.jpa.core.JpaProject;
 import org.eclipse.jpt.jpa.core.context.persistence.Persistence;
@@ -21,6 +22,8 @@ import org.eclipse.jpt.jpa.core.context.persistence.PersistenceUnit;
 import org.eclipse.jpt.jpa.core.context.persistence.PersistenceUnitTransactionType;
 import org.eclipse.jpt.jpa.core.resource.xml.JpaXmlResource;
 import org.eclipse.jpt.jpa.db.ConnectionProfile;
+import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleException;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -58,15 +61,67 @@ public class JpaFacetHelper extends AbstractJpaFacetHelper {
         pUnit = persistence.persistenceUnits().next();
       }
 
+      // Use default persistence provider (This might have earlier been set
+      // some DataNucleus value).
+      if (pUnit.getProvider() != null) {
+        pUnit.setProvider("");
+      }
       pUnit.setSpecifiedTransactionType(
           PersistenceUnitTransactionType.RESOURCE_LOCAL);
-      pUnit.setProperty(JDBC_DRIVER, getFixedDriverClassName(
-          conn.getDriverClassName()));
-      pUnit.setProperty(JDBC_URL, getFixedUrl(conn.getURL()));
-      pUnit.setProperty(JDBC_USER, conn.getUserName());
-      pUnit.setProperty(JDBC_PASSWORD, conn.getUserPassword());
+      if (conn.getDriverClassName() != null) {
+        pUnit.setProperty(JDBC_DRIVER, getFixedDriverClassName(
+            conn.getDriverClassName()));
+      }
+      if (conn.getURL() != null) {
+        pUnit.setProperty(JDBC_URL, getFixedUrl(conn.getURL()));
+      }
+      if (conn.getUserName() != null) {
+        pUnit.setProperty(JDBC_USER, conn.getUserName());
+      }
+      if (conn.getUserPassword() != null) {
+        pUnit.setProperty(JDBC_PASSWORD, conn.getUserPassword());
+      }
 
       resource.save(Collections.EMPTY_MAP);
+    }
+  }
+
+  // Check if all the optional dependencies required for the JPA
+  // functionality are available.
+  public static boolean areJpaDepsAvailable() {
+    if (Platform.getBundle("org.eclipse.jpt.common.core") != null
+        && Platform.getBundle("org.eclipse.jpt.common.utility") != null
+        && Platform.getBundle("org.eclipse.jpt.jpa.core") != null
+        && Platform.getBundle("org.eclipse.jpt.jpa.db") != null
+        && Platform.getBundle("org.eclipse.wst.common.emf") != null) {
+
+      /*
+       * On Eclipse 3.7, the o.e.jpt.jpa.core plugin won't activate if
+       * o.e.jst.j2ee.web is not present, even though this plugin is not
+       * mentioned in the dependencies of o.e.jpt.jpa.core
+       * 
+       * This is because o.e.jpt.jpa.core activation requires that facet
+       * "jst.web" be available -- and this facet is contributed by
+       * o.e.jst.j2ee.web
+       * 
+       * So in addition to checking if o.e.jpt.jpa.core is present, also check
+       * if it can be successfully activated.
+       * 
+       * [The above scenario: o.e.jpt.jpa.core present and o.e.jst.j2ee.web
+       * absent, happens on e37 classic edition.]
+       */
+      Bundle jptJpaCore = Platform.getBundle("org.eclipse.jpt.jpa.core");
+      if (jptJpaCore.getState() != Bundle.ACTIVE) {
+        try {
+          Platform.getBundle("org.eclipse.jpt.jpa.core").start();
+        } catch (BundleException e) {
+          return false;
+        }
+      }
+      // o.e.jpt.jpa.core already active, or successfully activated above.
+      return true;
+    } else {
+      return false;
     }
   }
 

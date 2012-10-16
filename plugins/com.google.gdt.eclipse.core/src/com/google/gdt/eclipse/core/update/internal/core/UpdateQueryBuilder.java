@@ -1,16 +1,16 @@
 /*******************************************************************************
  * Copyright 2011 Google Inc. All Rights Reserved.
- *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
+ * 
+ *  All rights reserved. This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License v1.0 which
+ * accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 
+ *  Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  *******************************************************************************/
 package com.google.gdt.eclipse.core.update.internal.core;
 
@@ -18,8 +18,11 @@ import com.google.gdt.eclipse.core.CorePlugin;
 import com.google.gdt.eclipse.core.CorePluginLog;
 import com.google.gdt.eclipse.core.extensions.ExtensionQuery;
 
+import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ProjectScope;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.QualifiedName;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
@@ -42,7 +45,7 @@ public class UpdateQueryBuilder {
  public static final String API_ADD_ACTION = "api_add";
 
   public static final String GAE_BACKEND_DEPLOY_ACTION = "gae_backend_deploy";
-  
+
   public static final String GAE_DEPLOY_ACTION = "gae_deploy";
 
   public static final String GPH_PROJECT_IMPORT = "gph_import";
@@ -51,29 +54,35 @@ public class UpdateQueryBuilder {
   
   private static final String APP_ENGINE_CORE_PLUGIN_ID = "com.google.appengine.eclipse.core";
 
+  private static final String
+      APP_ENGINE_CORE_PLUGIN_ID = "com.google.appengine.eclipse.core";
+
   private static final String FACET_JST_JAVA = "jst.java";
 
   private static final String FACET_JAVA = "java";
 
   /**
-   * Stores count of RPC layers used if Gae Project is App Engine Connected Android Project.
+   * Stores count of RPC layers used if Gae Project is App Engine Connected
+   * Android Project.
    */
-  public static synchronized void incrementRPCLayerCount(IProject project, Boolean initialize) {
+  public static synchronized void incrementRPCLayerCount(
+      IProject project, Boolean initialize) {
     try {
-      String rpcLayerCountString = 
-          project.getPersistentProperty(new QualifiedName(CorePlugin.PLUGIN_ID, 
-              "gaeConnectedAndroidProject"));
+      String rpcLayerCountString = project.getPersistentProperty(
+          new QualifiedName(
+              CorePlugin.PLUGIN_ID, "gaeConnectedAndroidProject"));
       int rpcLayerCountInt = 0;
       if (!initialize) {
         if (rpcLayerCountString == null) {
-          return;          
+          return;
         } else {
           rpcLayerCountInt = Integer.parseInt(rpcLayerCountString) + 1;
         }
       }
       rpcLayerCountString = Integer.toString(rpcLayerCountInt);
-      project.setPersistentProperty(new QualifiedName(CorePlugin.PLUGIN_ID,
-          "gaeConnectedAndroidProject"), rpcLayerCountString);
+      project.setPersistentProperty(
+          new QualifiedName(CorePlugin.PLUGIN_ID, "gaeConnectedAndroidProject"),
+          rpcLayerCountString);
     } catch (CoreException e) {
       CorePluginLog.logError(e);
     }
@@ -88,6 +97,11 @@ public class UpdateQueryBuilder {
    * If this is for an api add ping, then the name of the api added.
    */
   private String apiName;
+
+  /**
+   * If this is for an api add ping, then the platform of the api added.
+   */
+  private String apiPlatform;
 
   /**
    * The current eclipse version that we are using.
@@ -116,12 +130,17 @@ public class UpdateQueryBuilder {
   private String rpcLayerCount;
 
   /**
+   * Stores count of RPC layers used if Gae Project is App Engine Connected
+   * Android Project.
+   */
+  private String rpcLayerCount;
+  /**
    * Stores info about Google cloud sql usage.
    */
   private boolean isGoogleCloudSqlUsed;
-  
+
   private boolean isGoogleCloudSqlUsedWithMysql;
-  
+
   /**
    * The product information for eclipse, to distinguish between different
    * "brands" of Eclipse, eg "normal" eclipse and STS.
@@ -133,23 +152,50 @@ public class UpdateQueryBuilder {
    * Stores information about the facets enabled on this project.
    */
   private String facetsEnabled;
-  
+
   /**
    * Stores update query arguments contributed by extensions
    */
   private String extensionContribs;
 
+  /**
+   * Stores info about whether the project has Web API.
+   */
+  private boolean isCloudEndpointProject;
+
   public UpdateQueryBuilder() {
     isGoogleCloudSqlUsed = false;
     isGoogleCloudSqlUsedWithMysql = false;
+    isCloudEndpointProject = false;
+  }
+
+  /**
+   * Retrieves info about whether the project is Cloud Endpoint project.
+   */
+  public void retrieveCloudEndpointEnabled(IProject project) {
+    IFolder f = ResourcesPlugin.getWorkspace().getRoot()
+        .getFolder(project.getFullPath().append("/war/WEB-INF/"));
+    try {
+      if (f.exists() && f.members().length != 0) {
+        for (IResource r : f.members()) {
+          if (r.getName().endsWith(".api")) {
+            isCloudEndpointProject = true;
+            break;
+          }
+        }
+      }
+    } catch (CoreException e) {
+      CorePluginLog.logError(e);
+    }
   }
 
   public void retrieveExtensionContributions(IProject project) {
     extensionContribs = "";
-    ExtensionQuery<UpdateQueryArgContributor> extQuery = 
-        new ExtensionQuery<UpdateQueryArgContributor>(CorePlugin.PLUGIN_ID, 
-                                                     "updateQueryArgContributor", "class");
-    List<ExtensionQuery.Data<UpdateQueryArgContributor>> contributors = extQuery.getData();
+    ExtensionQuery<UpdateQueryArgContributor> extQuery = new ExtensionQuery<
+        UpdateQueryArgContributor>(
+        CorePlugin.PLUGIN_ID, "updateQueryArgContributor", "class");
+    List<ExtensionQuery.Data<UpdateQueryArgContributor>> contributors = extQuery
+      .getData();
     for (ExtensionQuery.Data<UpdateQueryArgContributor> c : contributors) {
       UpdateQueryArgContributor uqac = c.getExtensionPointData();
       extensionContribs += uqac.getContribution(project);
@@ -198,34 +244,37 @@ public class UpdateQueryBuilder {
   }
 
   /**
-  * Retrieves info about Google cloud sql usage.
-  */
- public void retrieveGoogleCloudSqlUsage(IProject project) {
-   IScopeContext projectScope = new ProjectScope(project);
-   IEclipsePreferences prefs = projectScope.getNode(APP_ENGINE_CORE_PLUGIN_ID);
-   if (prefs == null) {
-     CorePluginLog.logError("retrieveGoogleCloudSqlUsage: No appEngineCorePluginID preferences");
-     return;
-   }
+   * Retrieves info about Google cloud sql usage.
+   */
+  public void retrieveGoogleCloudSqlUsage(IProject project) {
+    IScopeContext projectScope = new ProjectScope(project);
+    IEclipsePreferences prefs = projectScope.getNode(APP_ENGINE_CORE_PLUGIN_ID);
+    if (prefs == null) {
+      CorePluginLog.logError(
+          "retrieveGoogleCloudSqlUsage: No appEngineCorePluginID preferences");
+      return;
+    }
 
-   if (prefs.getBoolean("googleCloudSqlEnabled", false)) {
-     isGoogleCloudSqlUsed = true;
-     isGoogleCloudSqlUsedWithMysql = prefs.getBoolean("localDevMySqlEnabled", false);
-   }
- }
+    if (prefs.getBoolean("googleCloudSqlEnabled", false)) {
+      isGoogleCloudSqlUsed = true;
+      isGoogleCloudSqlUsedWithMysql = prefs.getBoolean(
+          "localDevMySqlEnabled", false);
+    }
+  }
 
   /**
-   * Retrieves count of RPC layers used if Gae Project is App Engine Connected Android Project.
+   * Retrieves count of RPC layers used if Gae Project is App Engine Connected
+   * Android Project.
    */
   public synchronized void retrieveRPCLayerCount(IProject project) {
     try {
-      rpcLayerCount = project.getPersistentProperty(new QualifiedName(CorePlugin.PLUGIN_ID, 
-          "gaeConnectedAndroidProject"));
+      rpcLayerCount = project.getPersistentProperty(new QualifiedName(
+          CorePlugin.PLUGIN_ID, "gaeConnectedAndroidProject"));
     } catch (CoreException e) {
       CorePluginLog.logError(e);
     }
   }
-  
+
   /**
    * Sets if this query is a gae deploy ping.
    */
@@ -236,9 +285,11 @@ public class UpdateQueryBuilder {
 
   /**
    * @param apiName
+   * @param apiPlatform
    */
-  public void setApiName(String apiName) {
+  public void setApiNamePlatform(String apiName, String apiPlatform) {
     this.apiName = apiName;
+    this.apiPlatform = apiPlatform;
   }
   
   /**
@@ -277,7 +328,7 @@ public class UpdateQueryBuilder {
   public void setInstallationId(String installationId) {
     this.installationId = installationId;
   }
-  
+
   public void setMaxSdkVersions(Map<String, String> maxSdkVersions) {
     this.maxSdkVersions = maxSdkVersions;
   }
@@ -334,14 +385,16 @@ public class UpdateQueryBuilder {
     if (apiName != null) {
       sb.append("&apiName=");
       sb.append(apiName);
+      sb.append("&apiPlatform=");
+      sb.append(apiPlatform);
     }
-    
+
     if (rpcLayerCount != null) {
       sb.append("&rpcLayerCount=");
       sb.append(rpcLayerCount);
     }
-    
-    if (action != null){
+
+    if (action != null) {
       sb.append("&isGoogleCloudSqlUsed=");
       sb.append(isGoogleCloudSqlUsed);
       if (isGoogleCloudSqlUsed) {
@@ -355,10 +408,14 @@ public class UpdateQueryBuilder {
       sb.append(facetsEnabled);
     }
 
+    if (isCloudEndpointProject) {
+      sb.append("&isCloudEndpointProject=true");
+    }
+
     if (extensionContribs != null) {
       sb.append(extensionContribs);
     }
-      
+
     return sb.toString();
   }
 }

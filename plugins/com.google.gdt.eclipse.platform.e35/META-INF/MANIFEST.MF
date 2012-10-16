@@ -17,7 +17,14 @@ Require-Bundle: com.google.gdt.eclipse.platform.shared;visibility:=reexport,
  org.eclipse.equinox.p2.ui,
  org.eclipse.equinox.p2.ui.sdk,
  org.eclipse.equinox.p2.metadata,
- org.eclipse.equinox.p2.core
+ org.mortbay.jetty.server,
+ org.mortbay.jetty.util,
+ org.eclipse.equinox.p2.core,
+ javax.servlet,
+ org.eclipse.jface.text,
+ org.eclipse.ltk.core.refactoring
 Export-Package: com.google.gdt.eclipse.platform.debug.ui,
+ com.google.gdt.eclipse.platform.jetty,
+ com.google.gdt.eclipse.platform.jdt.text.correction.proposals,
  com.google.gdt.eclipse.platform.update
 Bundle-ActivationPolicy: lazy

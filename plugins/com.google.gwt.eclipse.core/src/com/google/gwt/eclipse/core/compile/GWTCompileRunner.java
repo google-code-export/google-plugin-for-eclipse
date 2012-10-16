@@ -79,6 +79,11 @@ public class GWTCompileRunner {
       new SpeedTracerArtifactsRemover(warLocation.toFile()).removeAll();
     }
 
+    if (settings.getEntryPointModules().isEmpty()) {
+      // Nothing to compile, so just return.
+      return;
+    }
+
     int processStatus = ProcessUtilities.launchProcessAndWaitFor(
         computeCompilerCommandLine(javaProject, warLocation, settings),
         project.getLocation().toFile(), consoleOutputStream, processReceiver);

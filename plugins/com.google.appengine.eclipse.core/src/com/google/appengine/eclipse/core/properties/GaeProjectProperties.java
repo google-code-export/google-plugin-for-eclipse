@@ -1,6 +1,6 @@
 /*******************************************************************************
  * Copyright 2011 Google Inc. All Rights Reserved.
- * 
+ *
  * All rights reserved. This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License v1.0 which
  * accompanies this distribution, and is available at
@@ -63,6 +63,8 @@ public final class GaeProjectProperties {
 
   private static final String GAE_DATANUCLEUS_ENABLED = "gaeDatanucleusEnabled";
 
+  private static final String GAE_DATANUCLEUS_VERSION = "gaeDatanucleusVersion";
+
   public static List<String> getFileNamesCopiedToWebInfLib(IProject project) {
     IEclipsePreferences prefs = getProjectProperties(project);
     String rawPropVal = prefs.get(FILES_COPIED_TO_WEB_INF_LIB, null);
@@ -77,6 +79,17 @@ public final class GaeProjectProperties {
     IEclipsePreferences prefs = getProjectProperties(project);
     // If the property is not present, default to true.
     return prefs.getBoolean(GAE_DATANUCLEUS_ENABLED, true);
+  }
+
+  /**
+   * If the property is not present, this is an old project. Though the version of the libs is v1,
+   * they were not copied from /lib/opt.
+   *
+   * @return Returns "" if the property is not set.
+   */
+  public static String getGaeDatanucleusVersion(IProject project) {
+    IEclipsePreferences prefs = getProjectProperties(project);
+    return prefs.get(GAE_DATANUCLEUS_VERSION, "");
   }
 
   public static String getGaeDeployDialogSettings(IProject project) {
@@ -135,7 +148,7 @@ public final class GaeProjectProperties {
 
   /**
    * All functions which begin with "job" prefix starts a new Job with schedule IProject.
-   * This solves the deadlock/hanging problem with Eclipse 3.7 synchronized flush. Work around till 
+   * This solves the deadlock/hanging problem with Eclipse 3.7 synchronized flush. Work around till
    * 3.7 releases a new updated version with synchronized.
    * @param project
    * @param datanucleusEnabled
@@ -147,6 +160,22 @@ public final class GaeProjectProperties {
       public IStatus runInWorkspace(IProgressMonitor monitor) {
         try {
           setGaeDatanucleusEnabled(project, datanucleusEnabled);
+          return Status.OK_STATUS;
+        } catch (BackingStoreException e) {
+          return StatusUtilities.newErrorStatus(e, AppEngineCorePlugin.PLUGIN_ID);
+        }
+      }
+    };
+    startWorkspaceJob(job, project);
+  }
+
+  public static void jobSetGaeDatanucleusVersion(
+      final IProject project, final String datanucleusVersion) {
+    Job job = new WorkspaceJob(PREFERENCES_JOB_NAME) {
+      @Override
+      public IStatus runInWorkspace(IProgressMonitor monitor) {
+        try {
+          setGaeDatanucleusVersion(project, datanucleusVersion);
           return Status.OK_STATUS;
         } catch (BackingStoreException e) {
           return StatusUtilities.newErrorStatus(e, AppEngineCorePlugin.PLUGIN_ID);
@@ -218,6 +247,13 @@ public final class GaeProjectProperties {
     prefs.flush();
   }
 
+  public static void setGaeDatanucleusVersion(IProject project, String datanucleusVersion)
+      throws BackingStoreException {
+    IEclipsePreferences prefs = getProjectProperties(project);
+    prefs.put(GAE_DATANUCLEUS_VERSION, datanucleusVersion);
+    prefs.flush();
+  }
+
   public static void setGaeDeployDialogSettings(IProject project, String settings)
       throws BackingStoreException {
     IEclipsePreferences prefs = getProjectProperties(project);
@@ -260,7 +296,7 @@ public final class GaeProjectProperties {
   }
 
   /**
-   * Starts a workspace job with lock on the project. 
+   * Starts a workspace job with lock on the project.
    *
    * @param job
    * @param project

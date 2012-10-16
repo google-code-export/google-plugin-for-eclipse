@@ -14,6 +14,7 @@
  *******************************************************************************/
 package com.google.appengine.eclipse.webtools.facet;
 
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jpt.core.JpaProject;
 import org.eclipse.jpt.core.context.persistence.Persistence;
@@ -58,16 +59,38 @@ public class JpaFacetHelper extends AbstractJpaFacetHelper {
         pUnit = persistence.persistenceUnits().next();
       }
 
+      // Use default persistence provider (This might have earlier been set
+      // some DataNucleus value).
+      if (pUnit.getProvider() != null) {
+        pUnit.setProvider("");
+      }
       pUnit.setSpecifiedTransactionType(
           PersistenceUnitTransactionType.RESOURCE_LOCAL);
-      pUnit.setProperty(JDBC_DRIVER, getFixedDriverClassName(
-          conn.getDriverClassName()));
-      pUnit.setProperty(JDBC_URL, getFixedUrl(conn.getURL()));
-      pUnit.setProperty(JDBC_USER, conn.getUserName());
-      pUnit.setProperty(JDBC_PASSWORD, conn.getUserPassword());
+      if (conn.getDriverClassName() != null) {
+        pUnit.setProperty(JDBC_DRIVER, getFixedDriverClassName(
+        conn.getDriverClassName()));
+      }
+      if (conn.getURL() != null) {
+        pUnit.setProperty(JDBC_URL, getFixedUrl(conn.getURL()));
+      }
+      if (conn.getUserName() != null) {
+        pUnit.setProperty(JDBC_USER, conn.getUserName());
+      }
+      if (conn.getUserPassword() != null) {
+        pUnit.setProperty(JDBC_PASSWORD, conn.getUserPassword());
+      }
 
       resource.save(Collections.EMPTY_MAP);
     }
+  }
+
+  // Check if all the optional dependencies required for the JPA
+  // functionality are available.
+  public static boolean areJpaDepsAvailable() {
+    return (Platform.getBundle("org.eclipse.jpt.core") != null
+        && Platform.getBundle("org.eclipse.jpt.db") != null
+        && Platform.getBundle("org.eclipse.jpt.utility") != null
+        && Platform.getBundle("org.eclipse.wst.common.emf") != null);
   }
 
   private JpaFacetHelper() {

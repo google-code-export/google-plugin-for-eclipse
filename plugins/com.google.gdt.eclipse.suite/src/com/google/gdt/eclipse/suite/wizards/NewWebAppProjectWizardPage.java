@@ -43,6 +43,7 @@ import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jface.window.Window;
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -226,6 +227,13 @@ public class NewWebAppProjectWizardPage extends WizardPage {
     createAppsMarketplaceGroup(container);
 
     createOtherOptionsGroup(container);
+
+    final ScrolledComposite scroller =
+        new ScrolledComposite(parent, SWT.H_SCROLL | SWT.V_SCROLL);
+    scroller.setExpandHorizontal(true);
+    scroller.setExpandVertical(true);
+    scroller.setContent(container);
+    scroller.setMinSize(container.computeSize(SWT.DEFAULT, SWT.DEFAULT));
 
     updateControls();
     projectNameText.forceFocus();

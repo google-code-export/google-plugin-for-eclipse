@@ -35,6 +35,8 @@ public class GaeNature implements IProjectNature {
 
   public static final String CLASS_ENHANCER_BUILDER = AppEngineCorePlugin.PLUGIN_ID
       + ".enhancerbuilder";
+  public static final String GAE_PROJECT_CHANGE_NOTIFIER =
+      AppEngineCorePlugin.PLUGIN_ID + ".gaeProjectChangeNotifier";
   public static final String NATURE_ID = AppEngineCorePlugin.PLUGIN_ID
       + ".gaeNature";
 
@@ -71,6 +73,8 @@ public class GaeNature implements IProjectNature {
         WebAppProjectValidator.BUILDER_ID);
     if (GaeProjectProperties.getGaeDatanucleusEnabled(project)) {
       BuilderUtilities.addBuilderToProject(project, CLASS_ENHANCER_BUILDER);
+      BuilderUtilities.addBuilderToProject(
+          project, GAE_PROJECT_CHANGE_NOTIFIER);
     }
     BuilderUtilities.addBuilderToProject(project,
         GaeProjectValidator.BUILDER_ID);
@@ -78,6 +82,8 @@ public class GaeNature implements IProjectNature {
 
   public void deconfigure() throws CoreException {
     BuilderUtilities.removeBuilderFromProject(project, CLASS_ENHANCER_BUILDER);
+    BuilderUtilities.removeBuilderFromProject(
+        project, GAE_PROJECT_CHANGE_NOTIFIER);
     BuilderUtilities.removeBuilderFromProject(project,
         GaeProjectValidator.BUILDER_ID);
     WebAppProjectValidator.removeBuilderIfNoGwtOrAppEngineNature(project);

@@ -164,8 +164,8 @@ public enum LaunchConfigAffectingChangesListener implements
     if (preferences.parent().name() == ProjectScope.SCOPE) {
       IJavaProject javaProject = JavaProjectUtilities.findJavaProject(preferences.name());
       if (javaProject != null) {
-    	  updateLaunchConfigs(javaProject);
-    	}
+        updateLaunchConfigs(javaProject);
+      }
     }
   }
 

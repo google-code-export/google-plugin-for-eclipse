@@ -6,6 +6,8 @@
   <extension-point id="com.google.appengine.eclipse.core.gaeSdkSelectionEnablementFinder" name="gaeSdkSelectionEnablementFinder" schema="schema/com.google.appengine.eclipse.core.gaeSdkSelectionEnablementFinder.exsd"/>
   <extension-point id="com.google.appengine.eclipse.core.gaeSqlToolsExtension" name="gaeSqlToolsExtension" schema="schema/com.google.appengine.eclipse.core.gaeSqlToolsExtension.exsd"/>
   <extension-point id="com.google.appengine.eclipse.core.appengineWebXml" name="appengineWebXml" schema="schema/com.google.appengine.eclipse.core.appengineWebXml.exsd"/>
+  <extension-point id="com.google.appengine.eclipse.core.gaeProjectChange" name="gaeProjectChange" schema="schema/com.google.appengine.eclipse.core.gaeProjectChange.exsd"/>
+  <extension-point id="com.google.appengine.eclipse.core.logGaeStats" name="logGaeStats" schema="schema/com.google.appengine.eclipse.core.logGaeStats.exsd"/>
   <extension
          point="org.eclipse.jdt.core.compilationParticipant">
       <compilationParticipant
@@ -34,6 +36,9 @@
       </requires-nature>
       <builder
             id="com.google.appengine.eclipse.core.projectValidator">
+      </builder>
+      <builder
+            id="com.google.appengine.eclipse.core.gaeProjectChangeNotifier">
       </builder>
    </extension>
    <extension
@@ -153,6 +158,17 @@
             isConfigurable="false">
          <run
                class="com.google.appengine.eclipse.core.validators.GaeProjectValidator">
+         </run>
+      </builder>
+   </extension>
+   <extension
+         id="gaeProjectChangeNotifier"
+         name="Google App Engine Project Change Notifier"
+         point="org.eclipse.core.resources.builders">
+      <builder
+            hasNature="true">
+         <run
+               class="com.google.appengine.eclipse.core.properties.ui.GaeProjectChangeNotifier">
          </run>
       </builder>
    </extension>

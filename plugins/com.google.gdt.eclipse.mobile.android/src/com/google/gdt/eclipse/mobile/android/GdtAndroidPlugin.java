@@ -16,7 +16,6 @@ package com.google.gdt.eclipse.mobile.android;
 
 import com.google.gdt.eclipse.core.AbstractGooglePlugin;
 import com.google.gdt.eclipse.core.Logger;
-import com.google.gdt.eclipse.mobile.android.resources.WorkspaceMonitor;
 
 import org.eclipse.jface.resource.ImageRegistry;
 import org.osgi.framework.BundleContext;
@@ -52,15 +51,6 @@ public class GdtAndroidPlugin extends AbstractGooglePlugin {
     super.start(context);
     plugin = this;
     logger = new Logger(this);
-  }
-
-  @Override
-  public void stop(BundleContext context) throws Exception {
-    try {
-      super.stop(context);
-    } finally {
-      WorkspaceMonitor.getInstance().removeFromWorkspace();
-    }
   }
 
   @Override

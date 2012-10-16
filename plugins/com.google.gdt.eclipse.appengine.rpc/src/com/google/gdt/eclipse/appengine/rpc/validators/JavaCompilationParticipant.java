@@ -164,6 +164,9 @@ public class JavaCompilationParticipant extends CompilationParticipant {
             requestMap);
       }
 
+      if (cu.findPrimaryType() == null) {
+        return;
+      }
       if (cuName == null
           || !cuName.equals(cu.findPrimaryType().getFullyQualifiedName())) {
         cuName = cu.findPrimaryType().getFullyQualifiedName();

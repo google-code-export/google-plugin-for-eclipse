@@ -206,7 +206,7 @@ public class GoogleLogin {
    * authentication headers to use to make http requests. If the user has not
    * signed in, this method will block and pop up the login dialog to the user.
    * If the user cancels signing in, this method will return null.
-   *
+   * 
    *  If the access token that was used to sign this transport was revoked or
    * has expired, then execute() invoked on Request objects constructed from
    * this transport will throw an exception, for example,
@@ -265,7 +265,7 @@ public class GoogleLogin {
   /**
    * Makes a request to get an OAuth2 access token from the OAuth2 refresh
    * token. This token is short lived.
-   *
+   * 
    * @return an OAuth2 token, or null if there was an error or if the user
    *         wasn't signed in and canceled signing in.
    * @throws IOException if something goes wrong while fetching the token.
@@ -391,7 +391,7 @@ public class GoogleLogin {
    *          as accessing Google API services. It should say something like
    *          "Importing a project from Google Project Hosting requires signing
    *          in."
-   *
+   * 
    * @return true if the user signed in or is already signed in, false otherwise
    */
   public boolean logIn(String message) {
@@ -490,6 +490,53 @@ public class GoogleLogin {
    */
   public boolean logOut(boolean showPrompt) {
     return logOut(showPrompt, true);
+  }
+
+  /**
+   * When the login trim is instantiated by the UI, it calls this method so that
+   * when logIn() is called by something other than the login trim itself, the
+   * login trim can be notified to update its UI.
+   * 
+   * @param trim
+   */
+  public void setLoginTrimContribution(LoginTrimContribution trim) {
+    this.trim = trim;
+  }
+
+  private boolean checkLoggedIn(String msg) {
+    if (!isLoggedIn) {
+      boolean rc = logIn(msg);
+      if (!rc) {
+        return false;
+      }
+      notifyTrim();
+    }
+    return true;
+  }
+
+  private String getOAuthScopes() {
+
+    if (cachedOAuthScopes == null) {
+      cachedOAuthScopes = GoogleLoginUtils.queryOAuthScopeExtensions();
+    }
+
+    return cachedOAuthScopes;
+  }
+
+  private void initializeOauthClientInfo() {
+    ExtensionQuery<IClientProvider> extensionQuery = new ExtensionQuery<
+        IClientProvider>(
+        GoogleLoginPlugin.PLUGIN_ID, "oauthClientProvider", "class");
+    for (ExtensionQuery.Data<IClientProvider> data : extensionQuery.getData()) {
+      String id = data.getExtensionPointData().getId();
+      String secret = data.getExtensionPointData().getSecret();
+      if (!StringUtilities.isEmpty(id) && id.trim().length() > 0
+          && !StringUtilities.isEmpty(secret) && secret.trim().length() > 0) {
+        clientId = id;
+        clientSecret = secret;
+        return;
+      }
+    }
   }
 
   private boolean logOut(boolean showPrompt, boolean doRevoke) {
@@ -617,15 +664,37 @@ public class GoogleLogin {
     }
   }
 
-  /**
-   * When the login trim is instantiated by the UI, it calls this method so that
-   * when logIn() is called by something other than the login trim itself, the
-   * login trim can be notified to update its UI.
-   *
-   * @param trim
-   */
-  public void setLoginTrimContribution(LoginTrimContribution trim) {
-    this.trim = trim;
+  protected void loadLogin() {
+
+    Credentials prefs = GoogleLoginPrefs.loadCredentials();
+
+    // the stored email can be null in the case where the external browser
+    // was launched, because we can't extract the email from the external
+    // browser
+    if (prefs.refreshToken == null || prefs.storedScopes == null) {
+      GoogleLoginPrefs.clearStoredCredentials();
+      return;
+    }
+
+    accessToken = prefs.accessToken;
+    refreshToken = prefs.refreshToken;
+    accessTokenExpiryTime = prefs.accessTokenExpiryTime;
+    this.email = prefs.storedEmail;
+
+    isLoggedIn = true;
+
+    if (!getOAuthScopes().equals(prefs.storedScopes)) {
+      GoogleLoginPlugin.logWarning(
+          "OAuth scope set for stored credentials no longer valid, logging out.");
+      logOut(false);
+    }
+
+    access = new GoogleAccessProtectedResource(accessToken,
+        transport,
+        jsonFactory,
+        clientId,
+        clientSecret,
+        refreshToken);
   }
 
   protected void stop() {

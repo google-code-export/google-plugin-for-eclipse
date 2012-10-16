@@ -20,8 +20,6 @@ import com.google.gdt.eclipse.core.CorePluginLog;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
-import org.eclipse.update.internal.core.connection.ConnectionFactory;
-import org.eclipse.update.internal.core.connection.IResponse;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -79,16 +77,16 @@ public class DownloadRunnable implements IRunnableWithProgressAndStatus {
     int bytesRead;
 
     try {
-      IResponse response = ConnectionFactory.get(url);
-      input = response.getInputStream();
+      HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+      input = url.openStream();
       long totalBytesRead = 0L;
-      int responseStatusCode = response.getStatusCode();
+      int responseStatusCode = connection.getResponseCode();
       if (responseStatusCode >= HttpURLConnection.HTTP_BAD_REQUEST) { // 400
         jobStatus = new Status(Status.ERROR, CorePlugin.PLUGIN_ID,
             MessageFormat.format("Remote ServerError: {0} ({1})",
-                responseStatusCode, response.getStatusMessage()));
+                responseStatusCode, connection.getResponseMessage()));
       }
-      long contentLength = response.getContentLength();
+      long contentLength = connection.getContentLength();
 
       output = new FileOutputStream(target);
 

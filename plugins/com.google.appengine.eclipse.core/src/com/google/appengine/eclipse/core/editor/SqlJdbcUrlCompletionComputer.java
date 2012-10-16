@@ -45,6 +45,10 @@ public class SqlJdbcUrlCompletionComputer implements IJavaCompletionProposalComp
   
   private static final int COMPLETION_TRIGGER_INT = 5;
 
+  public void sessionStarted() {
+    // Do nothing.
+  }
+
   public List<ICompletionProposal> computeCompletionProposals(
       ContentAssistInvocationContext context, IProgressMonitor monitor) {
 
@@ -135,10 +139,6 @@ public class SqlJdbcUrlCompletionComputer implements IJavaCompletionProposalComp
   }
 
   public void sessionEnded() {
-    // Do nothing.
-  }
-
-  public void sessionStarted() {
     // Do nothing.
   }
 }

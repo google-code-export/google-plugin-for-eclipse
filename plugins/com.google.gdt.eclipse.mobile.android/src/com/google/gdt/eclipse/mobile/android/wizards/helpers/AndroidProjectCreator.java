@@ -14,17 +14,15 @@
  *******************************************************************************/
 package com.google.gdt.eclipse.mobile.android.wizards.helpers;
 
-import com.google.gdt.eclipse.appengine.rpc.nature.AppEngineConnectedNature;
-import com.google.gdt.eclipse.core.ResourceUtils;
+import com.google.gdt.eclipse.appengine.rpc.AppEngineRPCPlugin;
 import com.google.gdt.eclipse.mobile.android.GdtAndroidPlugin;
 
-import com.android.io.StreamException;
 import com.android.ide.eclipse.adt.AdtConstants;
 import com.android.ide.eclipse.adt.AdtPlugin;
-import com.android.ide.eclipse.adt.internal.launch.AndroidLaunchController;
 import com.android.ide.eclipse.adt.internal.project.AndroidNature;
 import com.android.ide.eclipse.adt.internal.project.ProjectHelper;
 import com.android.ide.eclipse.adt.internal.sdk.Sdk;
+import com.android.io.StreamException;
 import com.android.sdklib.IAndroidTarget;
 import com.android.sdklib.SdkConstants;
 
@@ -57,6 +55,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -68,29 +67,12 @@ import java.util.Map.Entry;
 @SuppressWarnings("restriction")
 public class AndroidProjectCreator {
 
-  private static final String[] LIB_JARS = new String[] {
-      "requestfactory-client.jar", "c2dm.jar", "validation-api-1.0.0.GA.jar"};
-
-  private static final String[] LIB_SOURCE_JARS = new String[] {
-      "requestfactory-client-src.jar", "c2dm-sources.jar"};
-
-  private static String[] JAVA_FILES = new String[] {
-      "AccountsActivity.java", "AndroidRequestTransport.java",
-      "C2DMReceiver.java", "DeviceRegistrar.java", "MessageDisplay.java",
-      "Setup.java", "Util.java"};
-
-  private static String[] LAYOUT_FILES = new String[] {
-      "account.xml", "connect.xml", "disconnect.xml", "hello_world.xml"};
-
-  private static String[] ICON_FILES = new String[] {
-      "app_icon.png", "gradient.png", "ic_mailboxes_accounts.png",
-      "status_icon.png"};
-  private static String[] ICON_HDPI_FILES = new String[] {
-      "app_icon_hdpi.png", "gradient_hdpi.png",
-      "ic_mailboxes_accounts_hdpi.png", "status_icon_hdpi.png"};
-  private static String[] ICON_MDPI_FILES = new String[] {
-      "app_icon_mdpi.png", "gradient_mdpi.png",
-      "ic_mailboxes_accounts_mdpi.png", "status_icon_mdpi.png"};
+  private static String[] ICON_FILES =
+      new String[] {"ic_launcher.png", "ic_mailboxes_accounts.png"};
+  private static String[] ICON_HDPI_FILES =
+      new String[] {"ic_launcher_hdpi.png", "ic_mailboxes_accounts_hdpi.png"};
+  private static String[] ICON_MDPI_FILES =
+      new String[] {"ic_launcher_mdpi.png", "ic_mailboxes_accounts_mdpi.png"};
 
   private static final String TEMPLATES_DIRECTORY = "templates/android/"; //$NON-NLS-1$
 
@@ -120,12 +102,11 @@ public class AndroidProjectCreator {
    * @throws IOException
    * @throws StreamException
    */
-  public void create(IProgressMonitor monitor) throws CoreException,
+  public IProject create(IProgressMonitor monitor) throws CoreException,
       IOException, StreamException {
 
     IWorkspace workspace = ResourcesPlugin.getWorkspace();
-    androidProject = workspace.getRoot().getProject(
-        projectName + ProjectCreationConstants.ADT_PROJECT_NAME_SUFFIX);
+    androidProject = workspace.getRoot().getProject(projectName);
     androidProjectDescription = workspace.newProjectDescription(androidProject.getName());
     IPath path = (IPath) androidProjectParameters.get(ProjectCreationConstants.PARAM_PROJECT_PATH);
     IPath defaultLocation = Platform.getLocation();
@@ -148,12 +129,8 @@ public class AndroidProjectCreator {
         monitor, 10));
     QualifiedName qualifiedName = new QualifiedName(GdtAndroidPlugin.PLUGIN_ID,
         androidProject.getName());
-    androidProject.setPersistentProperty(qualifiedName, projectName
-        + "-App Engine"); //$NON-NLS-N$
     // Add the Java and android nature to the project
     AndroidNature.setupProjectNatures(androidProject, monitor);
-    // Add the Cloud Connected Nature to the project
-    AppEngineConnectedNature.addNatureToProject(androidProject);
 
     // Create folders in the project if they don't already exist
     addDefaultDirectories(androidProject, AdtConstants.WS_ROOT,
@@ -205,16 +182,17 @@ public class AndroidProjectCreator {
           androidProject,
           sourceFolders[0],
           (String) androidProjectParameters.get(ProjectCreationConstants.PARAM_PACKAGE),
-          justProjectName + "Activity.java", replacements, monitor); //$NON-NLS-N$
-      addSampleCode(
+          "HelloActivity.java", replacements, monitor); //$NON-NLS-N$
+      addAuthHelperClass(
           androidProject,
           sourceFolders[0],
           (String) androidProjectParameters.get(ProjectCreationConstants.PARAM_PACKAGE),
-          JAVA_FILES, replacements, monitor);
-
-      addLayoutFile(androidProject, LAYOUT_FILES, monitor);
-
-      addJar(androidProject, monitor);
+          "GoogleAccountCredential.java", replacements, monitor);
+      addIdsClass(
+          androidProject,
+          sourceFolders[0],
+          (String) androidProjectParameters.get(ProjectCreationConstants.PARAM_PACKAGE),
+          "Ids.java", replacements, monitor);
 
       // add the string definition file if needed
       if (androidProjectDictionary.size() > 0) {
@@ -224,17 +202,15 @@ public class AndroidProjectCreator {
 
       // add the main menu resource file
       addMainMenuFile(androidProject, monitor);
-
+      addLayoutFile(androidProject, "activity_ping.xml", monitor);
       // add the default proguard config
       File libFolder = new File(
           (String) androidProjectParameters.get(ProjectCreationConstants.PARAM_SDK_TOOLS_DIR),
           SdkConstants.FD_LIB);
       addLocalFile(androidProject, new File(libFolder,
-          SdkConstants.FN_PROGUARD_CFG), monitor);
+          SdkConstants.FN_PROJECT_PROGUARD_FILE), monitor);
 
       addPrefsFile(androidProject, monitor);
-
-      addAptFactoryPathFile(androidProject, monitor);
 
       // Set output location
       javaProject.setOutputLocation(
@@ -249,7 +225,7 @@ public class AndroidProjectCreator {
     // Fix the project to make sure all properties are as expected.
     // Necessary for existing projects and good for new ones to.
     ProjectHelper.fixProject(androidProject);
-    AndroidLaunchController.getLaunchConfig(androidProject);
+    return androidProject;
   }
 
   public void setAndroidProjectDictionary(
@@ -265,24 +241,6 @@ public class AndroidProjectCreator {
 
   public void setGwtSdkInstallationPath(IPath gwtSdkInstallationPath) {
     this.gwtSdkInstallationPath = gwtSdkInstallationPath;
-  }
-
-  /**
-   * Adds the .factorypath file for apt processing
-   * 
-   * @throws IOException
-   * @throws CoreException
-   */
-  private void addAptFactoryPathFile(IProject androidProject,
-      IProgressMonitor monitor) throws CoreException, IOException {
-    String factorypathInfo = "<factorypath>\n "
-        + "<factorypathentry kind=\"EXTJAR\" id=\"" + gwtSdkInstallationPath
-        + "/requestfactory-apt.jar\" enabled=\"true\" "
-        + "runInBatchMode=\"false\"/>\n</factorypath>";
-    IFile factoryPath = androidProject.getFile(ProjectCreationConstants.FACTORYPATH_FILE);
-    if (!factoryPath.exists()) {
-      copyFile(factorypathInfo, factoryPath, monitor);
-    }
   }
 
   /**
@@ -390,55 +348,19 @@ public class AndroidProjectCreator {
   }
 
   /**
-   * Adds a jar file to the lib folder of project
-   * 
-   * @param project
-   * @param monitor
-   * @throws CoreException
-   */
-  private void addJar(IProject project, IProgressMonitor monitor)
-      throws CoreException {
-
-    IFolder srcFolder = project.getFolder(ProjectCreationConstants.LIB_DIRECTORY);
-    ResourceUtils.createFolderIfNonExistent(srcFolder, monitor);
-
-    for (String jarName : LIB_JARS) {
-      IFile file = project.getFile(ProjectCreationConstants.LIB_DIRECTORY
-          + jarName);
-      if (!file.exists()) {
-        addFile(file,
-            ProjectResourceUtils.getResource(TEMPLATES_DIRECTORY + jarName),
-            monitor);
-      }
-      setupLibraryPath(JavaCore.create(project), file.getFullPath(), monitor);
-    }
-    for (String jarName : LIB_SOURCE_JARS) {
-      IFile file = project.getFile(ProjectCreationConstants.LIB_DIRECTORY
-          + jarName);
-      if (!file.exists()) {
-        addFile(file,
-            ProjectResourceUtils.getResource(TEMPLATES_DIRECTORY + jarName),
-            monitor);
-      }
-    }
-  }
-
-  /**
    * Adds a layout file
    */
-  private void addLayoutFile(IProject project, String[] fileNames,
+  private void addLayoutFile(
+      IProject project, String fileName,
       IProgressMonitor monitor) throws CoreException, IOException {
     // create the layout file
     IFolder layoutfolder = project.getFolder(
         ProjectCreationConstants.RES_DIRECTORY).getFolder(
         ProjectCreationConstants.LAYOUT_DIRECTORY);
-    for (String fileName : fileNames) {
-      IFile file = layoutfolder.getFile(fileName);
-      if (!file.exists()) {
-        copyFile(
-            ProjectResourceUtils.getResourceAsString(TEMPLATES_DIRECTORY
-                + fileName), file, monitor);
-      }
+    IFile file = layoutfolder.getFile(fileName);
+    if (!file.exists()) {
+      copyFile(ProjectResourceUtils.getResourceAsString(
+          TEMPLATES_DIRECTORY + fileName + ".layout"), file, monitor);
     }
   }
 
@@ -492,6 +414,65 @@ public class AndroidProjectCreator {
   }
 
   /**
+   * Adds the Auth helper class, naming it to correspond to project name
+   * 
+   * @throws CoreException
+   * @throws IOException
+   */
+  private void addAuthHelperClass(IProject project, String sourceFolder,
+      String packageName, String fileName, Map<String, String> replacements,
+      IProgressMonitor monitor) throws CoreException, IOException {
+
+    // create the java package directories.
+    IFolder pkgFolder = project.getFolder(sourceFolder);
+
+    String[] components = packageName.split(AdtConstants.RE_DOT);
+    for (String component : components) {
+      pkgFolder = pkgFolder.getFolder(component);
+      if (!pkgFolder.exists()) {
+        pkgFolder.create(true /* force */, true /* local */,
+            new SubProgressMonitor(monitor, 10));
+      }
+    }
+
+    IFile file = pkgFolder.getFile(fileName);
+    if (!file.exists()) {
+      copyFile(
+          ProjectResourceUtils.getResourceAsString(TEMPLATES_DIRECTORY
+              + "GoogleAccountCredential.java", replacements), file, monitor); //$NON-NLS-N$
+    }
+  }
+
+  /**
+   * Adds the Ids class, naming it to correspond to project name
+   * 
+   * @throws CoreException
+   * @throws IOException
+   */
+  private void addIdsClass(IProject project, String sourceFolder,
+      String packageName, String fileName, Map<String, String> replacements,
+      IProgressMonitor monitor) throws CoreException, IOException {
+
+    // create the java package directories.
+    IFolder pkgFolder = project.getFolder(sourceFolder);
+
+    String[] components = packageName.split(AdtConstants.RE_DOT);
+    for (String component : components) {
+      pkgFolder = pkgFolder.getFolder(component);
+      if (!pkgFolder.exists()) {
+        pkgFolder.create(true /* force */, true /* local */,
+            new SubProgressMonitor(monitor, 10));
+      }
+    }
+
+    IFile file = pkgFolder.getFile(fileName);
+    if (!file.exists()) {
+      copyFile(ProjectResourceUtils.getResourceAsString(TEMPLATES_DIRECTORY
+          + "Ids.java", replacements), file, monitor); //$NON-NLS-N$
+    }
+  }
+
+  /**
    * Adds the menu resource file.
    * 
    * @param project The Java Project to update.
@@ -512,7 +493,7 @@ public class AndroidProjectCreator {
       // get the main_menus.xml template
       Map<String, String> replacements = new HashMap<String, String>();
       String mainMenuTemplate = ProjectResourceUtils.getResourceAsString(
-          TEMPLATES_DIRECTORY + "main_menu.xml", replacements); //$NON-NLS-N$
+          TEMPLATES_DIRECTORY + "activity_ping.xml", replacements); //$NON-NLS-N$
       // Save in the project as UTF-8
       InputStream stream = new ByteArrayInputStream(
           mainMenuTemplate.getBytes("UTF-8")); //$NON-NLS-1$
@@ -666,11 +647,26 @@ public class AndroidProjectCreator {
     if (!file.exists()) {
       // get the strings.xml template
       Map<String, String> replacements = new HashMap<String, String>();
-      replacements.put(
-          "@ApplicationName@", //$NON-NLS-N$
-          androidProjectDictionary.get(ProjectCreationConstants.STRING_APP_NAME));
       String stringTemplate = ProjectResourceUtils.getResourceAsString(
           TEMPLATES_DIRECTORY + "strings.xml", replacements); //$NON-NLS-N$
+      // Save in the project as UTF-8
+      InputStream stream = new ByteArrayInputStream(
+          stringTemplate.getBytes("UTF-8")); //$NON-NLS-1$
+      file.create(stream, false /* force */,
+          new SubProgressMonitor(monitor, 10));
+    }
+
+    // create the IFile object and check if the file doesn't already exist.
+    file = project.getFile(ProjectCreationConstants.RES_DIRECTORY
+        + ProjectCreationConstants.WS_SEP
+        + ProjectCreationConstants.VALUES_DIRECTORY
+        + ProjectCreationConstants.WS_SEP
+        + ProjectCreationConstants.STYLES_FILE);
+    if (!file.exists()) {
+      // get the strings.xml template
+      Map<String, String> replacements = new HashMap<String, String>();
+      String stringTemplate = ProjectResourceUtils.getResourceAsString(
+          TEMPLATES_DIRECTORY + "styles.xml", replacements); //$NON-NLS-N$
       // Save in the project as UTF-8
       InputStream stream = new ByteArrayInputStream(
           stringTemplate.getBytes("UTF-8")); //$NON-NLS-1$
@@ -809,7 +805,7 @@ public class AndroidProjectCreator {
     }
 
     IProject gaeProject = ResourcesPlugin.getWorkspace().getRoot().getProject(
-        projectName + ProjectCreationConstants.GAE_PROJECT_NAME_SUFFIX);
+        projectName + AppEngineRPCPlugin.GAE_PROJECT_NAME_SUFFIX);
     IFolder sharedFolder = gaeProject.getFolder(ProjectCreationConstants.SHARED_FOLDER_NAME);
     if (sharedFolder.exists()) {
       IFolder androidLinkedFolder = androidProject.getFolder(ProjectCreationConstants.SHARED_FOLDER_NAME);

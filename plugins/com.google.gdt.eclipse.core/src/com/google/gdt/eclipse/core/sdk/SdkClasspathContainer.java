@@ -21,7 +21,7 @@ import org.eclipse.jdt.core.IClasspathEntry;
 
 /**
  * Classpath container associated with an {@link Sdk}.
- * 
+ *
  * @param <T> type of {@link Sdk} associated with this classpath container
  */
 public class SdkClasspathContainer<T extends Sdk> implements
@@ -96,7 +96,7 @@ public class SdkClasspathContainer<T extends Sdk> implements
 
   /**
    * Computes a default container path for the given container ID.
-   * 
+   *
    * @param containerId container ID for the given Sdk
    * @return default container path for the given container ID
    */
@@ -106,7 +106,7 @@ public class SdkClasspathContainer<T extends Sdk> implements
 
   /**
    * Computes a qualified container path for the given container ID and Sdk.
-   * 
+   *
    * @param containerId container ID for the given Sdk
    * @param sdk Sdk instance
    * @return qualified container path for the given container ID and Sdk
@@ -122,7 +122,7 @@ public class SdkClasspathContainer<T extends Sdk> implements
    * Returns <code>true</code> if the classpath entry is an
    * {@link IClasspathEntry#CPE_CONTAINER} and it has the specified container
    * ID.
-   * 
+   *
    * @param containerId
    * @param classpathEntry
    * @return whether the classpathEntry is a container and has the containerId
@@ -139,7 +139,7 @@ public class SdkClasspathContainer<T extends Sdk> implements
   /**
    * Returns <code>true</code> if the path is a container path for the specified
    * container ID.
-   * 
+   *
    * @param containerId
    * @param path
    * @return whether the path is a container path for the containerId.
@@ -160,7 +160,7 @@ public class SdkClasspathContainer<T extends Sdk> implements
    * Returns <code>true</code> if the specified path is a default container path
    * which means that it has a single segment and that segment matches the
    * container ID.
-   * 
+   *
    * @param containerId container ID that should be associated with the default
    *          path
    * @param path the path to test
@@ -168,7 +168,10 @@ public class SdkClasspathContainer<T extends Sdk> implements
   public static boolean isDefaultContainerPath(String containerId, IPath path) {
     // NOTE: Technically we should get a ClasspathContainerInitializer and ask
     // it for the comparison ID, but we have no project to pass to them.
-    return isContainerPath(containerId, path) && path.segmentCount() == 1;
+    // If the path has just one segment, the SDK is default and if the path has another segment,
+    // we check if it is the datanucleus version number.
+    return isContainerPath(containerId, path)
+        && (path.segmentCount() == 1 || path.segment(1).matches("v[0-9]{1,2}"));
   }
 
   private final IPath path;

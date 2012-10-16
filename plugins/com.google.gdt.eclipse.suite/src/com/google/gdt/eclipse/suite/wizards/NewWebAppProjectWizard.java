@@ -78,6 +78,8 @@ public class NewWebAppProjectWizard extends NewElementWizard
   
   private boolean gaeSdkIsEclipseDefault;
 
+  private boolean gaeSdkIsEclipseDefault;
+
   public NewWebAppProjectWizard() {
   }
 

@@ -29,13 +29,17 @@ public class ApiImportProjectAction implements IActionDelegate {
   private IProject appEngineProject;
 
   public void run(IAction action) {
-    if (!AppEngineCheckDialog.isAppEngineProject(appEngineProject)) {
+    if (!AppEngineAndroidCheckDialog.isAppEngineAndroidProject(appEngineProject)) {
       return;
     }
     new ApiImportProjectHandler().execute(null);
   }
 
   public void selectionChanged(IAction action, ISelection selection) {
+    if (selection == null || !(selection instanceof IStructuredSelection)
+        || !((IStructuredSelection) selection).iterator().hasNext()) {
+      return;
+    }
     appEngineProject = AdapterUtilities.getAdapter(
         ((IStructuredSelection) selection).iterator().next(), IProject.class);
   }
